@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Fredoka',system-ui,sans-serif;background:radial-gradient(120% 90% at 50% 0%,#efe9ff 0%,#f7eee6 55%,#efe9ff 100%);min-height:100vh}
+  a{color:#6c4cf1}
+  .stage{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px 16px}
+  .rolebar{display:inline-flex;background:#fff;border-radius:999px;padding:5px;box-shadow:0 10px 24px -14px rgba(108,76,241,.55);gap:4px}
+  .roleb{border:none;cursor:pointer;font-family:'Fredoka';font-size:13px;font-weight:600;padding:9px 18px;border-radius:999px;background:transparent;color:#9a8bc0;display:flex;align-items:center;gap:7px;transition:.18s}
+  .phone{width:330px;height:706px;border-radius:46px;padding:11px;background:linear-gradient(160deg,#2c2340,#171226);box-shadow:0 40px 70px -26px rgba(80,50,160,.6);flex:none}
+  .screen{width:100%;height:100%;border-radius:36px;overflow:hidden;position:relative;display:flex;flex-direction:column;background:linear-gradient(180deg,#ece5ff 0%,#fdf6ef 46%)}
+  .sbar{display:flex;justify-content:space-between;align-items:center;padding:13px 24px 5px;font-size:13px;font-weight:600;color:#6b5aa0;flex:none}
+  .body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .body::-webkit-scrollbar{width:0}
+  .card{background:#fff;border-radius:var(--card-rad,22px);box-shadow:var(--card-shadow,0 12px 26px -18px rgba(108,76,241,.5))}
+  .btn{border:none;cursor:pointer;font-family:'Fredoka';font-weight:600}
+  .h1{font-size:22px;font-weight:700;color:#2c2340;margin:0}
+  .navbar{display:flex;align-items:center;justify-content:space-around;padding:9px 12px 20px;background:#fff;border-top:1px solid #f0ebff;flex:none;z-index:5}
+  .navi{background:none;border:none;cursor:pointer;padding:6px;line-height:1;transition:.15s;color:#2c2340}
+  .scanbtn{width:58px;height:58px;border-radius:var(--fab-rad,50%);background:var(--brand-grad,linear-gradient(135deg,#6c4cf1,#a24cf1));display:flex;align-items:center;justify-content:center;margin-top:-26px;box-shadow:var(--fab-shadow,0 12px 22px -6px rgba(108,76,241,.75));border:none;cursor:pointer;color:#fff}
+  .overlay{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column}
+  input,select{font-family:'Fredoka'}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-8px) rotate(2deg)}}
+  @keyframes fillbar{from{width:0}}
+  @keyframes scanline{0%{top:8%}100%{top:88%}}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+  @keyframes ping{0%{transform:scale(.6);opacity:.7}100%{transform:scale(2.4);opacity:0}}
+  @keyframes rise{0%{transform:translateY(14px);opacity:0}100%{transform:translateY(0);opacity:1}}
+  @keyframes confFall{0%{transform:translateY(-30px) rotate(0)}100%{transform:translateY(720px) rotate(540deg)}}
+  @keyframes toastin{0%{transform:translate(-50%,-16px);opacity:0}100%{transform:translate(-50%,0);opacity:1}}
+  @keyframes count{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  @keyframes pushin{0%{transform:translateY(-120%);opacity:0}100%{transform:translateY(0);opacity:1}}
+  @keyframes locpulse{0%{transform:scale(.6);opacity:.6}100%{transform:scale(2.6);opacity:0}}
+</style>
+</helmet>
+
+<div class="stage" style="{{ rootVars }}">
+  <div class="rolebar">
+    <button class="roleb" style="{{ ungdomBtn }}" onClick="{{ goUngdom }}">{{ icRoleGame }} Ungdom</button>
+    <button class="roleb" style="{{ adminBtn }}" onClick="{{ goAdmin }}">{{ icRoleAdmin }} Ledare</button>
+    <button class="roleb" style="{{ kommunBtn }}" onClick="{{ goKommun }}">{{ icRoleKommun }} Kommun</button>
+  </div>
+  <sc-if value="{{ showForeningPicker }}" hint-placeholder-val="{{ true }}">
+  <button class="btn" onClick="{{ cycleForening }}" style="display:inline-flex;align-items:center;gap:8px;background:#fff;border-radius:999px;padding:8px 15px;box-shadow:0 8px 20px -14px rgba(80,50,160,.6);font-size:12.5px;color:#2c2340">
+    <span style="width:10px;height:10px;border-radius:50%;background:{{ foreningColor }};flex:none"></span>{{ foreningName }}<span style="color:#b3a6d0;font-weight:500">· byt förening</span>
+  </button>
+  </sc-if>
+
+  <div class="phone">
+    <div class="screen">
+      <div class="sbar"><span>9:41</span>{{ icStatus }}</div>
+
+      <!-- ======================= UNGDOM ======================= -->
+      <sc-if value="{{ isUngdom }}" hint-placeholder-val="{{ true }}">
+      <div class="body">
+
+        <!-- HEM -->
+        <sc-if value="{{ sHem }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:6px 18px 20px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="min-width:0"><div style="font-size:12.5px;color:#8b7ab8;font-weight:500;white-space:nowrap">{{ greeting }}</div><div style="font-size:20px;font-weight:700;color:#2c2340">Elias</div></div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn" onClick="{{ goNotiser }}" style="position:relative;background:#fff;box-shadow:0 8px 18px -10px rgba(108,76,241,.5);width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#6c4cf1">
+                {{ icBell }}
+                <sc-if value="{{ hasUnread }}" hint-placeholder-val="{{ true }}"><span style="position:absolute;top:7px;right:7px;min-width:16px;height:16px;padding:0 4px;background:#ff4d8d;color:#fff;font-size:10px;font-weight:700;border-radius:8px;display:flex;align-items:center;justify-content:center;border:2px solid #fff">{{ unreadCount }}</span></sc-if>
+              </button>
+              <div style="display:flex;align-items:center;gap:5px;background:#fff;box-shadow:0 8px 18px -10px rgba(108,76,241,.5);padding:8px 12px;border-radius:22px">{{ icFire }}<span style="font-weight:600;font-size:14px;color:#ff7a4d">{{ streak }}</span></div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;padding:18px 16px 16px;border-radius:26px;background:var(--brand-grad,linear-gradient(140deg,#6c4cf1,#a24cf1));color:#fff;position:relative;overflow:hidden;box-shadow:var(--hero-shadow,0 18px 34px -16px rgba(108,76,241,.8))">
+            <div style="position:absolute;right:10px;bottom:-4px;animation:var(--mascot-anim,floaty 3.4s ease-in-out infinite)">
+              <svg width="86" height="86" viewBox="0 0 100 100"><path d="M50 6C57 32 68 43 94 50C68 57 57 68 50 94C43 68 32 57 6 50C32 43 43 32 50 6Z" fill="#ffd23f"/><circle cx="40" cy="46" r="6" fill="#2c2340"/><circle cx="60" cy="46" r="6" fill="#2c2340"/><circle cx="42" cy="44" r="2" fill="#fff"/><circle cx="62" cy="44" r="2" fill="#fff"/><path d="M40 60 Q50 70 60 60" stroke="#2c2340" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+            </div>
+            <div style="font-size:12px;opacity:.85;font-weight:500;letter-spacing:.05em">NIVÅ {{ level }} · {{ levelName }}</div>
+            <div style="font-size:30px;font-weight:700;line-height:1.05;margin-top:4px;max-width:160px">{{ pepp }}</div>
+            <div style="margin-top:16px;height:12px;border-radius:8px;background:rgba(255,255,255,.28);overflow:hidden;max-width:185px">
+              <div style="height:100%;border-radius:8px;background:#ffd23f;width:{{ xpPct }}%;transition:width .6s"></div>
+            </div>
+            <div style="font-size:11.5px;margin-top:7px;opacity:.92">{{ xpLeft }} XP till nivå {{ nextLevel }}</div>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:14px">
+            <div class="card" style="flex:1;padding:14px">
+              <div style="font-size:11px;color:#9a8bc0;font-weight:500">Poäng</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px">{{ icCoinP }}<span style="font-size:22px;font-weight:700;color:var(--brand-solid,#6c4cf1)">{{ pointsFmt }}</span></div>
+            </div>
+            <button class="btn card" onClick="{{ goButik }}" style="flex:1;padding:14px;text-align:left;background:#22c55e;color:#fff;box-shadow:0 12px 22px -12px rgba(34,197,94,.7)">
+              <div style="font-size:11px;opacity:.92;font-weight:500">Belöningar</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px">{{ icGiftW }}<span style="font-size:15px;font-weight:600">Byt poäng</span></div>
+            </button>
+          </div>
+
+          <div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:14px;font-weight:600;color:#2c2340">Dagens uppdrag</span>
+            <span class="btn" onClick="{{ goUppdrag }}" style="font-size:12px;color:#6c4cf1;background:none">Se alla</span>
+          </div>
+          <sc-for list="{{ homeMissions }}" as="m" hint-placeholder-count="2">
+            <button class="btn card" onClick="{{ m.onClick }}" style="width:100%;margin-top:11px;padding:13px 14px;display:flex;align-items:center;gap:12px;text-align:left;background:#fff">
+              <div style="width:44px;height:44px;border-radius:14px;background:{{ m.tint }};display:flex;align-items:center;justify-content:center;flex:none">{{ m.iconEl }}</div>
+              <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600;color:#2c2340">{{ m.title }}</div><div style="font-size:11.5px;color:#9a8bc0">{{ m.desc }}</div></div>
+              <div style="font-size:12px;font-weight:700;color:#22c55e;flex:none">+{{ m.xp }} XP</div>
+            </button>
+          </sc-for>
+
+          <div style="margin-top:18px;font-size:14px;font-weight:600;color:#2c2340">Senaste besök</div>
+          <sc-for list="{{ recent }}" as="r" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:12px;margin-top:11px;padding:0 2px">
+              <div style="width:36px;height:36px;border-radius:11px;background:#f0ebff;display:flex;align-items:center;justify-content:center;flex:none">{{ icPinSm }}</div>
+              <div style="flex:1"><div style="font-size:13px;font-weight:600;color:#2c2340">{{ r.title }}</div><div style="font-size:11px;color:#9a8bc0">{{ r.date }}</div></div>
+              <div style="font-size:12.5px;font-weight:700;color:#6c4cf1">+{{ r.pts }}</div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- NOTISER -->
+        <sc-if value="{{ sNotiser }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 18px 20px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="btn" onClick="{{ goHem }}" style="background:#fff;box-shadow:0 8px 18px -12px rgba(108,76,241,.5);width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#2c2340">{{ icArrowL }}</button>
+            <h1 class="h1">Notiser</h1>
+          </div>
+          <sc-for list="{{ notifs }}" as="n" hint-placeholder-count="4">
+            <div class="card" style="margin-top:12px;padding:13px 14px;display:flex;align-items:flex-start;gap:12px;background:{{ n.bg }}">
+              <div style="width:42px;height:42px;border-radius:13px;background:{{ n.tint }};display:flex;align-items:center;justify-content:center;flex:none">{{ n.iconEl }}</div>
+              <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600;color:#2c2340">{{ n.title }}</div><div style="font-size:12px;color:#8b7ab8;line-height:1.35;margin-top:1px">{{ n.body }}</div><div style="font-size:10.5px;color:#b3a6d0;margin-top:5px">{{ n.time }}</div></div>
+              <sc-if value="{{ n.unread }}" hint-placeholder-val="{{ false }}"><span style="width:9px;height:9px;border-radius:50%;background:#ff4d8d;flex:none;margin-top:4px"></span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- UPPDRAG -->
+        <sc-if value="{{ sUppdrag }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 18px 20px">
+          <h1 class="h1">Uppdrag</h1>
+          <div style="margin-top:14px;padding:16px;border-radius:22px;background:linear-gradient(135deg,#ff7a4d,#ff4d8d);color:#fff;box-shadow:0 16px 28px -16px rgba(255,77,141,.7)">
+            <div style="font-size:11.5px;opacity:.92;font-weight:500;letter-spacing:.04em">VECKANS UTMANING</div>
+            <div style="font-size:18px;font-weight:700;margin-top:2px">Besök 3 dagar i rad</div>
+            <div style="margin-top:12px;height:11px;border-radius:8px;background:rgba(255,255,255,.3);overflow:hidden">
+              <div style="height:100%;width:66%;background:#fff;border-radius:8px;animation:fillbar 1s ease-out"></div>
+            </div>
+            <div style="font-size:11.5px;margin-top:6px;opacity:.92">2 / 3 dagar · vinst: 200 poäng</div>
+          </div>
+          <sc-for list="{{ missions }}" as="m" hint-placeholder-count="4">
+            <div class="card" style="margin-top:13px;padding:15px;background:#fff">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:46px;height:46px;border-radius:14px;background:{{ m.tint }};display:flex;align-items:center;justify-content:center;flex:none">{{ m.iconEl }}</div>
+                <div style="flex:1"><div style="font-size:14px;font-weight:600;color:#2c2340">{{ m.title }}</div><div style="font-size:11.5px;color:#9a8bc0">{{ m.desc }}</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:12px">
+                <div style="flex:1;height:9px;border-radius:6px;background:#f0ebff;overflow:hidden"><div style="height:100%;border-radius:6px;background:{{ m.bar }};width:{{ m.pct }}%"></div></div>
+                <span style="font-size:11px;color:#9a8bc0;font-weight:500">{{ m.progText }}</span>
+              </div>
+              <button class="btn" onClick="{{ m.onClaim }}" style="margin-top:12px;width:100%;padding:10px;border-radius:13px;font-size:13px;background:{{ m.claimBg }};color:{{ m.claimColor }}">{{ m.claimText }}</button>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- BUTIK -->
+        <sc-if value="{{ sButik }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 18px 20px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <h1 class="h1">Butik</h1>
+            <div style="display:flex;align-items:center;gap:6px;background:#fff;padding:8px 13px;border-radius:20px;box-shadow:0 10px 20px -12px rgba(108,76,241,.5)">{{ icCoinP }}<span style="font-weight:700;color:var(--brand-solid,#6c4cf1);font-size:14px">{{ pointsFmt }}</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:16px">
+            <sc-for list="{{ rewards }}" as="r" hint-placeholder-count="6">
+              <div class="card" style="padding:13px;display:flex;flex-direction:column;background:#fff;opacity:{{ r.op }}">
+                <div style="height:74px;border-radius:15px;background:{{ r.tint }};display:flex;align-items:center;justify-content:center">{{ r.iconBig }}</div>
+                <div style="font-size:13px;font-weight:600;color:#2c2340;margin-top:9px">{{ r.title }}</div>
+                <div style="font-size:11px;color:#9a8bc0;margin-top:1px">{{ r.tag }}</div>
+                <button class="btn" onClick="{{ r.onRedeem }}" style="margin-top:10px;padding:9px;border-radius:12px;font-size:12.5px;background:{{ r.bg }};color:{{ r.color }};display:flex;align-items:center;justify-content:center;gap:5px">{{ r.labelEl }}</button>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- TOPPLISTA -->
+        <sc-if value="{{ sTopp }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 18px 20px">
+          <div style="display:flex;align-items:center;gap:9px"><h1 class="h1">Topplista</h1>{{ icTrophy }}</div>
+          <div style="font-size:12px;color:#9a8bc0;margin-top:2px">Den här veckan · {{ foreningName }}</div>
+          <div style="display:flex;align-items:flex-end;gap:10px;justify-content:center;margin-top:20px">
+            <sc-for list="{{ podium }}" as="p" hint-placeholder-count="3">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center">
+                <div style="width:{{ p.av }}px;height:{{ p.av }}px;border-radius:50%;background:{{ p.color }};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;border:3px solid #fff;box-shadow:0 8px 16px -8px rgba(0,0,0,.3)">{{ p.init }}</div>
+                <div style="margin-top:5px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:{{ p.medalBg }};color:#2c2340;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ p.place }}</div>
+                <div style="font-size:12px;font-weight:600;color:#2c2340;margin-top:3px">{{ p.name }}</div>
+                <div style="width:100%;margin-top:6px;border-radius:12px 12px 0 0;background:{{ p.bar }};height:{{ p.h }}px;display:flex;align-items:flex-start;justify-content:center;padding-top:7px;color:#fff;font-weight:700;font-size:12px">{{ p.pts }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-for list="{{ board }}" as="b" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:12px;margin-top:10px;padding:12px 14px;border-radius:16px;background:{{ b.bg }};border:{{ b.border }}">
+              <div style="font-size:13px;font-weight:700;color:#9a8bc0;width:20px">{{ b.rank }}</div>
+              <div style="width:34px;height:34px;border-radius:50%;background:{{ b.color }};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:13px">{{ b.init }}</div>
+              <div style="flex:1;font-size:13.5px;font-weight:600;color:#2c2340">{{ b.name }}</div>
+              <div style="font-size:13px;font-weight:700;color:#6c4cf1">{{ b.pts }}</div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- PROFIL -->
+        <sc-if value="{{ sProfil }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 18px 20px">
+          <div style="display:flex;flex-direction:column;align-items:center;padding-top:6px">
+            <div style="position:relative">
+              <div style="width:96px;height:96px;border-radius:50%;background:var(--brand-grad,linear-gradient(135deg,#6c4cf1,#a24cf1));display:flex;align-items:center;justify-content:center;box-shadow:0 16px 30px -14px rgba(108,76,241,.7)">
+                <svg width="66" height="66" viewBox="0 0 100 100"><path d="M50 6C57 32 68 43 94 50C68 57 57 68 50 94C43 68 32 57 6 50C32 43 43 32 50 6Z" fill="#ffd23f"/><circle cx="40" cy="46" r="6" fill="#2c2340"/><circle cx="60" cy="46" r="6" fill="#2c2340"/><path d="M40 60 Q50 70 60 60" stroke="#2c2340" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+              </div>
+              <div style="position:absolute;bottom:-4px;right:-4px;background:#ffd23f;color:#2c2340;font-size:11px;font-weight:700;padding:4px 8px;border-radius:12px;border:2px solid #fff">Nivå {{ level }}</div>
+            </div>
+            <div style="font-size:19px;font-weight:700;color:#2c2340;margin-top:12px">Elias Berg</div>
+            <div style="font-size:12.5px;color:#9a8bc0">{{ levelName }} · {{ foreningName }}</div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:18px">
+            <div class="card" style="flex:1;padding:13px;text-align:center;background:#fff"><div style="font-size:19px;font-weight:700;color:var(--brand-solid,#6c4cf1)">{{ pointsFmt }}</div><div style="font-size:10.5px;color:#9a8bc0">poäng</div></div>
+            <div class="card" style="flex:1;padding:13px;text-align:center;background:#fff"><div style="font-size:19px;font-weight:700;color:#ff7a4d">{{ visits }}</div><div style="font-size:10.5px;color:#9a8bc0">besök</div></div>
+            <div class="card" style="flex:1;padding:13px;text-align:center;background:#fff"><div style="font-size:19px;font-weight:700;color:#22c55e">{{ streak }}</div><div style="font-size:10.5px;color:#9a8bc0">dagars svit</div></div>
+          </div>
+          <div style="margin-top:18px;font-size:14px;font-weight:600;color:#2c2340">Märken</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-top:11px">
+            <sc-for list="{{ badges }}" as="b" hint-placeholder-count="8">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:5px;opacity:{{ b.op }}">
+                <div style="width:100%;aspect-ratio:1;border-radius:16px;background:{{ b.tint }};display:flex;align-items:center;justify-content:center">{{ b.iconEl }}</div>
+                <div style="font-size:9.5px;color:#9a8bc0;text-align:center;line-height:1.15">{{ b.name }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <button class="btn card" onClick="{{ goNarvaro }}" style="width:100%;margin-top:18px;padding:14px;display:flex;align-items:center;gap:11px;text-align:left;background:#fff">{{ icCalendar }}<span style="flex:1;font-size:13.5px;font-weight:600;color:#2c2340">Min närvaro</span>{{ icChevR }}</button>
+        </div>
+        </sc-if>
+
+        <!-- NÄRVARO -->
+        <sc-if value="{{ sNarvaro }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 18px 20px">
+          <div style="display:flex;align-items:center;gap:9px"><h1 class="h1">Min närvaro</h1>{{ icCalendar }}</div>
+          <div style="display:flex;gap:10px;margin-top:14px">
+            <div style="flex:1;padding:14px;border-radius:18px;background:var(--brand-grad,linear-gradient(135deg,#6c4cf1,#a24cf1));color:#fff"><div style="font-size:24px;font-weight:700">{{ visits }}</div><div style="font-size:11px;opacity:.9">besök totalt</div></div>
+            <div style="flex:1;padding:14px;border-radius:18px;background:#fff;box-shadow:0 12px 22px -16px rgba(108,76,241,.5)"><div style="font-size:24px;font-weight:700;color:#22c55e">12</div><div style="font-size:11px;color:#9a8bc0">denna månad</div></div>
+          </div>
+          <div style="margin-top:18px;font-size:14px;font-weight:600;color:#2c2340">Incheckningar</div>
+          <sc-for list="{{ attendance }}" as="a" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+              <div style="width:42px;height:42px;border-radius:13px;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex:none">{{ icCheckG }}</div>
+              <div style="flex:1"><div style="font-size:13.5px;font-weight:600;color:#2c2340">{{ a.title }}</div><div style="font-size:11px;color:#9a8bc0">{{ a.date }}</div></div>
+              <div style="font-size:13px;font-weight:700;color:#22c55e">+{{ a.pts }}</div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+      </div>
+
+      <!-- UNGDOM NAV -->
+      <sc-if value="{{ showNav }}" hint-placeholder-val="{{ true }}">
+      <div class="navbar">
+        <button class="navi" onClick="{{ goHem }}" style="opacity:{{ oHem }}">{{ icHome }}</button>
+        <button class="navi" onClick="{{ goUppdrag }}" style="opacity:{{ oUpp }}">{{ icTarget }}</button>
+        <button class="scanbtn" onClick="{{ goSkanna }}">{{ icCameraW }}</button>
+        <button class="navi" onClick="{{ goButik }}" style="opacity:{{ oBut }}">{{ icBag }}</button>
+        <button class="navi" onClick="{{ goProfil }}" style="opacity:{{ oPro }}">{{ icUser }}</button>
+      </div>
+      </sc-if>
+
+      <!-- SKANNA OVERLAY (geo-lock) -->
+      <sc-if value="{{ sSkanna }}" hint-placeholder-val="{{ false }}">
+      <div class="overlay" style="background:#171226;color:#fff">
+        <div style="padding:18px 20px;display:flex;align-items:center;gap:12px">
+          <button class="btn" onClick="{{ goHem }}" style="background:rgba(255,255,255,.12);color:#fff;width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center">{{ icArrowLW }}</button>
+          <div style="font-size:16px;font-weight:600;white-space:nowrap">Checka in</div>
+        </div>
+
+        <div style="padding:0 20px">
+          <!-- MAP -->
+          <div style="position:relative;height:158px;border-radius:20px;overflow:hidden;background:#e3e9ef">
+            <div style="position:absolute;left:7%;top:10%;width:34%;height:42%;background:#cbe8cd;border-radius:12px"></div>
+            <div style="position:absolute;right:-8%;bottom:-14%;width:48%;height:58%;background:#bfe0f5;border-radius:44%"></div>
+            <div style="position:absolute;left:0;right:0;top:52%;height:9px;background:#fff"></div>
+            <div style="position:absolute;top:0;bottom:0;left:44%;width:9px;background:#fff"></div>
+            <div style="position:absolute;left:0;right:0;top:82%;height:6px;background:#fff;opacity:.8"></div>
+            <div style="position:absolute;left:{{ actPinX }}%;top:{{ actPinY }}%;transform:translate(-50%,-100%);text-align:center;pointer-events:none">{{ icPinMap }}</div>
+            <div style="position:absolute;left:52%;top:62%;transform:translate(-50%,-50%);pointer-events:none">
+              <div style="position:absolute;inset:-6px;border-radius:50%;background:#2b6bff;animation:locpulse 1.8s ease-out infinite"></div>
+              <div style="position:relative;width:18px;height:18px;border-radius:50%;background:#2b6bff;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>
+            </div>
+          </div>
+
+          <!-- location status -->
+          <div style="margin-top:14px;padding:13px 15px;border-radius:16px;background:{{ geoBg }};display:flex;align-items:center;gap:11px">
+            <div style="width:38px;height:38px;border-radius:12px;background:{{ geoIconBg }};display:flex;align-items:center;justify-content:center;flex:none">{{ geoIcon }}</div>
+            <div style="flex:1"><div style="font-size:13.5px;font-weight:600;color:#fff">{{ geoTitle }}</div><div style="font-size:11.5px;color:rgba(255,255,255,.7)">{{ geoSub }}</div></div>
+          </div>
+        </div>
+
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 30px">
+          <div style="position:relative;width:150px;height:150px;border-radius:24px;background:radial-gradient(circle at 40% 30%,#3a2f5c,#221a3a);overflow:hidden;opacity:{{ qrOpacity }}">
+            <div style="position:absolute;inset:12px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center">
+              <div style="width:82px;height:82px;background:conic-gradient(#171226 0 25%,#fff 0 50%,#171226 0 75%,#fff 0);background-size:18px 18px;border-radius:6px;opacity:.9"></div>
+            </div>
+            <div style="position:absolute;left:7px;top:7px;width:26px;height:26px;border-left:4px solid #ffd23f;border-top:4px solid #ffd23f;border-radius:7px 0 0 0"></div>
+            <div style="position:absolute;right:7px;top:7px;width:26px;height:26px;border-right:4px solid #ffd23f;border-top:4px solid #ffd23f;border-radius:0 7px 0 0"></div>
+            <div style="position:absolute;left:7px;bottom:7px;width:26px;height:26px;border-left:4px solid #ffd23f;border-bottom:4px solid #ffd23f;border-radius:0 0 0 7px"></div>
+            <div style="position:absolute;right:7px;bottom:7px;width:26px;height:26px;border-right:4px solid #ffd23f;border-bottom:4px solid #ffd23f;border-radius:0 0 7px 0"></div>
+            <sc-if value="{{ scanning }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:7px;right:7px;height:3px;background:#ffd23f;box-shadow:0 0 12px #ffd23f;animation:scanline 1s ease-in-out infinite alternate"></div></sc-if>
+          </div>
+          <div style="margin-top:16px;font-size:13px;color:#c9bdf0;text-align:center">{{ scanHint }}</div>
+        </div>
+
+        <div style="padding:0 24px 30px">
+          <button class="btn" onClick="{{ doScan }}" disabled="{{ scanDisabled }}" style="width:100%;padding:16px;border-radius:18px;font-size:15px;background:{{ scanCtaBg }};color:{{ scanCtaColor }};box-shadow:{{ scanCtaShadow }}">{{ scanCta }}</button>
+          <div style="text-align:center;margin-top:12px"><span class="btn" onClick="{{ toggleFar }}" style="background:none;color:#8b7bc0;font-size:11.5px;font-weight:500;text-decoration:underline">{{ farToggleLabel }}</span></div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- SCAN SUCCESS OVERLAY -->
+      <sc-if value="{{ success }}" hint-placeholder-val="{{ false }}">
+      <div class="overlay" style="background:linear-gradient(180deg,#22c55e,#16a34a);color:#fff;align-items:center;justify-content:center;text-align:center;padding:30px">
+        <div style="position:relative">
+          <div style="position:absolute;inset:0;border-radius:50%;background:#fff;animation:ping 1.2s ease-out infinite"></div>
+          <div style="position:relative;width:110px;height:110px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;animation:pop .5s ease-out">
+            <svg width="60" height="60" viewBox="0 0 100 100"><path d="M50 6C57 32 68 43 94 50C68 57 57 68 50 94C43 68 32 57 6 50C32 43 43 32 50 6Z" fill="#ffd23f"/><circle cx="40" cy="46" r="6" fill="#2c2340"/><circle cx="60" cy="46" r="6" fill="#2c2340"/><path d="M38 60 Q50 74 62 60" stroke="#2c2340" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+        <div style="font-size:26px;font-weight:700;margin-top:24px;animation:rise .5s ease-out">Incheckad!</div>
+        <div style="font-size:14px;opacity:.92;margin-top:4px;animation:rise .6s ease-out">Kvällsfik · {{ foreningName }}</div>
+        <div style="display:flex;gap:14px;margin-top:26px">
+          <div style="background:rgba(255,255,255,.18);border-radius:18px;padding:16px 22px;animation:count .5s ease-out .15s both"><div style="font-size:28px;font-weight:700">+{{ gainXp }}</div><div style="font-size:11px;opacity:.9">XP</div></div>
+          <div style="background:rgba(255,255,255,.18);border-radius:18px;padding:16px 22px;animation:count .5s ease-out .3s both"><div style="font-size:28px;font-weight:700">+{{ gainPts }}</div><div style="font-size:11px;opacity:.9">poäng</div></div>
+        </div>
+        <button class="btn" onClick="{{ contScan }}" style="margin-top:32px;padding:15px 44px;border-radius:16px;font-size:15px;background:#fff;color:#16a34a">Fortsätt</button>
+      </div>
+      </sc-if>
+
+      <!-- LEVEL UP OVERLAY -->
+      <sc-if value="{{ showUp }}" hint-placeholder-val="{{ false }}">
+      <div class="overlay" style="background:var(--up-grad,linear-gradient(180deg,#6c4cf1,#3b1e8f));color:#fff;align-items:center;justify-content:center;text-align:center;padding:30px;overflow:hidden">
+        <div style="position:absolute;inset:0;pointer-events:none">{{ confetti }}</div>
+        <div style="font-size:13px;font-weight:600;letter-spacing:.3em;opacity:.85;animation:rise .5s">LEVEL UP</div>
+        <div style="margin:14px 0;animation:pop .6s ease-out">
+          <svg width="130" height="130" viewBox="0 0 100 100" style="animation:var(--mascot-anim,floaty 3s ease-in-out infinite)"><path d="M50 6C57 32 68 43 94 50C68 57 57 68 50 94C43 68 32 57 6 50C32 43 43 32 50 6Z" fill="#ffd23f"/><circle cx="40" cy="46" r="6" fill="#2c2340"/><circle cx="60" cy="46" r="6" fill="#2c2340"/><circle cx="42" cy="44" r="2" fill="#fff"/><circle cx="62" cy="44" r="2" fill="#fff"/><path d="M38 60 Q50 74 62 60" stroke="#2c2340" stroke-width="4.5" fill="none" stroke-linecap="round"/></svg>
+        </div>
+        <div style="font-size:44px;font-weight:700;line-height:1;animation:count .5s ease-out .1s both">Nivå {{ level }}!</div>
+        <div style="font-size:16px;font-weight:600;color:#ffd23f;margin-top:6px;animation:rise .6s">{{ levelName }}</div>
+        <div style="font-size:13px;opacity:.9;margin-top:14px;max-width:230px;animation:rise .7s">Ny förmån upplåst: <b>Dubbla poäng på helgen</b></div>
+        <button class="btn" onClick="{{ closeUp }}" style="margin-top:30px;padding:15px 48px;border-radius:16px;font-size:15px;background:#ffd23f;color:#2c2340">Nice!</button>
+      </div>
+      </sc-if>
+      </sc-if>
+
+      <!-- ======================= LEDARE / ADMIN ======================= -->
+      <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+      <div class="body" style="background:#f4f2fb">
+        <div style="padding:6px 18px 4px;display:flex;align-items:center;justify-content:space-between">
+          <div style="min-width:0"><div style="font-size:12px;color:#8b7ab8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ledarvy · {{ foreningName }}</div><div style="font-size:19px;font-weight:700;color:#2c2340">Hej Sara</div></div>
+          <div style="width:38px;height:38px;border-radius:12px;background:#2c2340;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">S</div>
+        </div>
+
+        <div style="display:flex;gap:7px;padding:12px 18px 4px;overflow-x:auto">
+          <sc-for list="{{ adminTabs }}" as="t" hint-placeholder-count="4">
+            <button class="btn" onClick="{{ t.onClick }}" style="flex:none;padding:9px 15px;border-radius:999px;font-size:12.5px;background:{{ t.bg }};color:{{ t.color }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+
+        <!-- ÖVERSIKT -->
+        <sc-if value="{{ aOversikt }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:12px 18px 24px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+            <div class="card" style="padding:15px;background:#fff"><div style="font-size:24px;font-weight:700;color:#6c4cf1">{{ checkedToday }}</div><div style="font-size:11px;color:#9a8bc0">incheckade idag</div></div>
+            <div class="card" style="padding:15px;background:#fff"><div style="font-size:24px;font-weight:700;color:#22c55e">{{ awardedToday }}</div><div style="font-size:11px;color:#9a8bc0">poäng utdelade idag</div></div>
+            <div class="card" style="padding:15px;background:#fff"><div style="font-size:24px;font-weight:700;color:#ff7a4d">{{ forgYouth }}</div><div style="font-size:11px;color:#9a8bc0">aktiva ungdomar</div></div>
+            <div class="card" style="padding:15px;background:#fff"><div style="font-size:24px;font-weight:700;color:#2c2340">{{ activities.length }}</div><div style="font-size:11px;color:#9a8bc0">aktiviteter</div></div>
+          </div>
+          <div style="margin-top:18px;font-size:14px;font-weight:600;color:#2c2340">Snabbåtgärder</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:11px">
+            <button class="btn card" onClick="{{ goANarvaro }}" style="padding:14px;display:flex;align-items:center;gap:12px;text-align:left;background:#fff">{{ icCheckP }}<span style="flex:1;font-size:13.5px;font-weight:600;color:#2c2340">Ta närvaro manuellt</span>{{ icChevR }}</button>
+            <button class="btn card" onClick="{{ goAAkt }}" style="padding:14px;display:flex;align-items:center;gap:12px;text-align:left;background:#fff">{{ icPinP }}<span style="flex:1;font-size:13.5px;font-weight:600;color:#2c2340">Lägg upp aktivitet</span>{{ icChevR }}</button>
+            <button class="btn card" onClick="{{ goABelon }}" style="padding:14px;display:flex;align-items:center;gap:12px;text-align:left;background:#fff">{{ icGiftP }}<span style="flex:1;font-size:13.5px;font-weight:600;color:#2c2340">Hantera belöningar</span>{{ icChevR }}</button>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- AKTIVITETER -->
+        <sc-if value="{{ aAkt }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:12px 18px 24px">
+          <div class="card" style="padding:15px;background:#fff">
+            <div style="font-size:14px;font-weight:600;color:#2c2340">Ny aktivitet</div>
+            <input value="{{ fTitle }}" onChange="{{ onFTitle }}" placeholder="Namn, t.ex. Fotbollskväll" style="width:100%;margin-top:10px;padding:11px 13px;border:1.5px solid #eae4fb;border-radius:12px;font-size:13px;outline:none;color:#2c2340" />
+            <div style="display:flex;gap:10px;margin-top:10px">
+              <input value="{{ fWhen }}" onChange="{{ onFWhen }}" placeholder="Tid, t.ex. Ons 18:00" style="flex:1;padding:11px 13px;border:1.5px solid #eae4fb;border-radius:12px;font-size:13px;outline:none;color:#2c2340" />
+              <input value="{{ fPts }}" onChange="{{ onFPts }}" type="number" placeholder="Poäng" style="width:90px;padding:11px 13px;border:1.5px solid #eae4fb;border-radius:12px;font-size:13px;outline:none;color:#2c2340" />
+            </div>
+
+            <!-- MAP PICKER -->
+            <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12.5px;font-weight:600;color:#2c2340">Incheckningsplats</span>
+              <span style="font-size:11px;color:{{ placeStatusColor }};font-weight:500">{{ placeStatus }}</span>
+            </div>
+            <div onClick="{{ onMapTap }}" style="position:relative;height:150px;border-radius:16px;overflow:hidden;background:#e3e9ef;margin-top:8px;cursor:crosshair;border:1.5px solid #eae4fb">
+              <div style="position:absolute;left:7%;top:10%;width:34%;height:42%;background:#cbe8cd;border-radius:12px;pointer-events:none"></div>
+              <div style="position:absolute;right:-8%;bottom:-14%;width:48%;height:58%;background:#bfe0f5;border-radius:44%;pointer-events:none"></div>
+              <div style="position:absolute;left:0;right:0;top:52%;height:8px;background:#fff;pointer-events:none"></div>
+              <div style="position:absolute;top:0;bottom:0;left:44%;width:8px;background:#fff;pointer-events:none"></div>
+              <div style="position:absolute;left:0;right:0;top:82%;height:5px;background:#fff;opacity:.8;pointer-events:none"></div>
+              <sc-if value="{{ adminPlaced }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:{{ adminPinX }}%;top:{{ adminPinY }}%;transform:translate(-50%,-100%);pointer-events:none">{{ icPinMapP }}</div>
+              </sc-if>
+              <sc-if value="{{ adminNotPlaced }}" hint-placeholder-val="{{ true }}">
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#6b7a8c;font-size:12px;font-weight:500;pointer-events:none">Tryck på kartan för att sätta platsen</div>
+              </sc-if>
+            </div>
+
+            <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12.5px;font-weight:600;color:#2c2340">Bakgrundsmall</span>
+              <span style="font-size:11px;color:#9a8bc0;font-weight:500">Syns för ungdomarna</span>
+            </div>
+            <div style="display:flex;gap:9px;margin-top:9px;overflow-x:auto;padding-bottom:2px">
+              <sc-for list="{{ themePicker }}" as="t" hint-placeholder-count="6">
+                <button class="btn" onClick="{{ t.onPick }}" style="flex:none;width:64px;border:none;background:none;cursor:pointer;text-align:center">
+                  <div style="position:relative;height:52px;border-radius:13px;background:{{ t.bg }};overflow:hidden;border:{{ t.ring }};box-shadow:0 6px 12px -8px rgba(0,0,0,.3)">
+                    <div style="position:absolute;right:-6px;bottom:-6px;opacity:.9">{{ t.iconEl }}</div>
+                    <sc-if value="{{ t.sel }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center">{{ t.check }}</div></sc-if>
+                  </div>
+                  <div style="font-size:10px;color:#7c6da0;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</div>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="margin-top:14px;font-size:11px;font-weight:600;color:#9a8bc0">Förhandsvisning</div>
+            <div style="margin-top:7px;position:relative;border-radius:16px;overflow:hidden;background:{{ prevBg }};padding:14px 15px;min-height:70px">
+              <div style="position:absolute;right:-8px;bottom:-10px;opacity:.85">{{ prevIcon }}</div>
+              <div style="position:relative"><div style="font-size:14px;font-weight:700;color:{{ prevInk }}">{{ prevTitle }}</div><div style="font-size:11.5px;color:{{ prevInk }};opacity:.85;margin-top:2px">{{ prevWhen }} · +{{ prevPts }}p</div></div>
+            </div>
+
+            <button class="btn" onClick="{{ addActivity }}" style="width:100%;margin-top:14px;padding:12px;border-radius:13px;font-size:13.5px;background:var(--brand-grad,linear-gradient(135deg,#6c4cf1,#a24cf1));color:#fff">Lägg upp aktivitet</button>
+          </div>
+          <div style="margin-top:18px;font-size:14px;font-weight:600;color:#2c2340">Aktuella aktiviteter</div>
+          <sc-for list="{{ activities }}" as="a" hint-placeholder-count="3">
+            <div class="card" style="margin-top:11px;position:relative;overflow:hidden;border-radius:18px;background:{{ a.bg }};padding:14px;display:flex;align-items:center;gap:12px">
+              <div style="position:absolute;right:-6px;bottom:-10px;opacity:.8;pointer-events:none">{{ a.watermark }}</div>
+              <div style="position:relative;width:44px;height:44px;border-radius:13px;background:rgba(255,255,255,.65);display:flex;align-items:center;justify-content:center;flex:none">{{ a.iconEl }}</div>
+              <div style="position:relative;flex:1"><div style="font-size:13.5px;font-weight:700;color:{{ a.ink }}">{{ a.title }}</div><div style="font-size:11.5px;color:{{ a.ink }};opacity:.8;display:flex;align-items:center;gap:5px">{{ a.when }} · {{ a.pinEl }} {{ a.place }}</div></div>
+              <div style="position:relative;text-align:right"><div style="font-size:13px;font-weight:700;color:{{ a.ink }}">+{{ a.pts }}p</div><div style="font-size:10px;color:#159a4a;font-weight:600;background:rgba(255,255,255,.7);border-radius:8px;padding:1px 6px;margin-top:2px">QR aktiv</div></div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- NÄRVARO (admin) -->
+        <sc-if value="{{ aNarvaro }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:12px 18px 24px">
+          <div style="font-size:13px;color:#9a8bc0">Kvällsfik · idag 18:00 · markera vilka som är på plats. Poäng delas ut direkt.</div>
+          <sc-for list="{{ youth }}" as="y" hint-placeholder-count="6">
+            <div class="card" style="margin-top:11px;padding:12px 14px;display:flex;align-items:center;gap:12px;background:#fff">
+              <div style="width:38px;height:38px;border-radius:50%;background:{{ y.color }};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:14px;flex:none">{{ y.init }}</div>
+              <div style="flex:1"><div style="font-size:13.5px;font-weight:600;color:#2c2340">{{ y.name }}</div><div style="font-size:11px;color:#9a8bc0">{{ y.sub }}</div></div>
+              <button class="btn" onClick="{{ y.onMark }}" style="padding:9px 14px;border-radius:12px;font-size:12.5px;background:{{ y.bg }};color:{{ y.color2 }};display:flex;align-items:center;gap:5px">{{ y.labelEl }}</button>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- BELÖNINGAR (admin) -->
+        <sc-if value="{{ aBelon }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:12px 18px 24px">
+          <div class="card" style="padding:15px;background:#fff">
+            <div style="font-size:14px;font-weight:600;color:#2c2340">Ny belöning</div>
+            <input value="{{ bTitle }}" onChange="{{ onBTitle }}" placeholder="Namn, t.ex. Biobiljett" style="width:100%;margin-top:10px;padding:11px 13px;border:1.5px solid #eae4fb;border-radius:12px;font-size:13px;outline:none;color:#2c2340" />
+            <div style="display:flex;gap:10px;margin-top:10px">
+              <select value="{{ bIcon }}" onChange="{{ onBIcon }}" style="flex:1;padding:11px 13px;border:1.5px solid #eae4fb;border-radius:12px;font-size:13px;outline:none;color:#2c2340;background:#fff">
+                <option value="film">Bio / event</option><option value="coffee">Fika</option><option value="shirt">Prylar / merch</option><option value="ticket">Biljett</option><option value="gamepad">Gaming</option>
+              </select>
+              <input value="{{ bCost }}" onChange="{{ onBCost }}" type="number" placeholder="Poäng" style="width:90px;padding:11px 13px;border:1.5px solid #eae4fb;border-radius:12px;font-size:13px;outline:none;color:#2c2340" />
+            </div>
+            <button class="btn" onClick="{{ addReward }}" style="width:100%;margin-top:11px;padding:12px;border-radius:13px;font-size:13.5px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff">Lägg till belöning</button>
+          </div>
+          <div style="margin-top:18px;font-size:14px;font-weight:600;color:#2c2340">Belöningar i butiken</div>
+          <sc-for list="{{ rewards }}" as="r" hint-placeholder-count="4">
+            <div class="card" style="margin-top:11px;padding:12px 14px;display:flex;align-items:center;gap:12px;background:#fff">
+              <div style="width:44px;height:44px;border-radius:13px;background:{{ r.tint }};display:flex;align-items:center;justify-content:center;flex:none">{{ r.iconEl }}</div>
+              <div style="flex:1"><div style="font-size:13.5px;font-weight:600;color:#2c2340">{{ r.title }}</div><div style="font-size:11.5px;color:#9a8bc0">{{ r.tag }}</div></div>
+              <div style="font-size:13px;font-weight:700;color:#6c4cf1">{{ r.cost }}p</div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- ======================= KOMMUN / SUPERADMIN ======================= -->
+      <sc-if value="{{ isKommun }}" hint-placeholder-val="{{ false }}">
+      <div class="body" style="background:#f4f2fb">
+        <div style="padding:6px 18px 4px">
+          <div style="font-size:12px;color:#8b7ab8;font-weight:500">Kommun · Ungdomsförvaltningen</div>
+          <div style="font-size:19px;font-weight:700;color:#2c2340">Alla föreningar</div>
+        </div>
+        <div style="padding:12px 18px 24px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div class="card" style="padding:13px;background:#fff"><div style="font-size:20px;font-weight:700;color:var(--brand-solid,#6c4cf1)">{{ totForeningar }}</div><div style="font-size:10.5px;color:#9a8bc0">föreningar</div></div>
+            <div class="card" style="padding:13px;background:#fff"><div style="font-size:20px;font-weight:700;color:#ff7a4d">{{ totYouth }}</div><div style="font-size:10.5px;color:#9a8bc0">ungdomar</div></div>
+            <div class="card" style="padding:13px;background:#fff"><div style="font-size:20px;font-weight:700;color:#22c55e">{{ totCheckins }}</div><div style="font-size:10.5px;color:#9a8bc0">incheckn. idag</div></div>
+          </div>
+          <div style="margin-top:13px;padding:13px 14px;border-radius:16px;background:#ece9ff;display:flex;align-items:center;gap:11px">
+            <div style="width:38px;height:38px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;flex:none">{{ icShield }}</div>
+            <div style="font-size:11.5px;color:#5b4b86;line-height:1.4">Varje förening har <b>helt separat data</b>. Ungdomar, poäng och topplistor blandas aldrig mellan föreningar.</div>
+          </div>
+          <div style="margin-top:16px;font-size:14px;font-weight:600;color:#2c2340">Föreningar</div>
+          <sc-for list="{{ foreningList }}" as="f" hint-placeholder-count="3">
+            <div class="card" style="margin-top:11px;padding:14px;background:#fff">
+              <div style="display:flex;align-items:center;gap:11px">
+                <div style="width:42px;height:42px;border-radius:13px;background:{{ f.color }};display:flex;align-items:center;justify-content:center;flex:none">{{ f.icon }}</div>
+                <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600;color:#2c2340">{{ f.name }}</div><div style="font-size:11px;color:#9a8bc0">{{ f.youth }} ungdomar · {{ f.activities }} aktiviteter · {{ f.checkins }} idag</div></div>
+              </div>
+              <button class="btn" onClick="{{ f.onOpen }}" style="width:100%;margin-top:11px;padding:10px;border-radius:12px;font-size:12.5px;background:#2c2340;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px">{{ f.openIcon }} Öppna som ledare</button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- PUSH BANNER -->
+      <sc-if value="{{ pushBanner }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ openPush }}" style="position:absolute;top:14px;left:12px;right:12px;z-index:50;background:rgba(30,22,52,.94);backdrop-filter:blur(8px);color:#fff;padding:12px 14px;border-radius:18px;display:flex;align-items:center;gap:11px;box-shadow:0 18px 36px -12px rgba(0,0,0,.55);animation:pushin .4s cubic-bezier(.2,1,.3,1);cursor:pointer">
+        <div style="width:38px;height:38px;border-radius:11px;background:var(--brand-grad,linear-gradient(135deg,#6c4cf1,#a24cf1));display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="24" height="24" viewBox="0 0 100 100"><path d="M50 6C57 32 68 43 94 50C68 57 57 68 50 94C43 68 32 57 6 50C32 43 43 32 50 6Z" fill="#ffd23f"/><circle cx="40" cy="46" r="6" fill="#2c2340"/><circle cx="60" cy="46" r="6" fill="#2c2340"/><path d="M40 60 Q50 70 60 60" stroke="#2c2340" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+        </div>
+        <div style="flex:1;min-width:0"><div style="font-size:12.5px;font-weight:600">{{ pushTitle }}</div><div style="font-size:11.5px;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pushBody }}</div></div>
+        <div style="font-size:10px;color:rgba(255,255,255,.5);flex:none">nu</div>
+      </div>
+      </sc-if>
+
+      <!-- TOAST -->
+      <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:40;background:#2c2340;color:#fff;padding:11px 18px;border-radius:14px;font-size:13px;font-weight:500;box-shadow:0 14px 30px -10px rgba(0,0,0,.5);animation:toastin .3s ease-out;white-space:nowrap">{{ toast }}</div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;palette&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Lila&quot;,&quot;Havsblå&quot;,&quot;Solnedgång&quot;,&quot;Cyber&quot;],&quot;default&quot;:&quot;Havsblå&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Känsla&quot;,&quot;label&quot;:&quot;Färgtema&quot;},&quot;gameFeel&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Chill&quot;,&quot;Lagom&quot;,&quot;Max&quot;],&quot;default&quot;:&quot;Chill&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Känsla&quot;,&quot;label&quot;:&quot;Spelkänsla (juice)&quot;},&quot;corners&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Rund&quot;,&quot;Mjuk&quot;,&quot;Kantig&quot;],&quot;default&quot;:&quot;Rund&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Känsla&quot;,&quot;label&quot;:&quot;Former&quot;}}">
+class Component extends DCLogic {
+  LNAMES = ['Nyfiken','Upptäckare','Äventyrare','Stigfinnare','Utforskare','Rävstig','Nivåryttare','Stjärnjägare','Kometryttare','Legend'];
+  LNAME(l){ return this.LNAMES[Math.min(l-1, this.LNAMES.length-1)] || 'Legend'; }
+
+  THEMES = [
+    {id:'fika',   name:'Fika',   icon:'coffee',   bg:'linear-gradient(135deg,#ffe6c2,#ffb877)', ink:'#5a3611', accent:'#c07a1e'},
+    {id:'sport',  name:'Sport',  icon:'soccer',   bg:'linear-gradient(135deg,#bfe6ff,#5cc0f5)', ink:'#0b3a52', accent:'#0284c7'},
+    {id:'musik',  name:'Skapar', icon:'palette',  bg:'linear-gradient(135deg,#d9ccff,#a988ff)', ink:'#33206b', accent:'#6c4cf1'},
+    {id:'gaming', name:'Gaming', icon:'gamepad',  bg:'linear-gradient(135deg,#c3f0d0,#4fd67f)', ink:'#0d4527', accent:'#16a34a'},
+    {id:'fest',   name:'Event',  icon:'sparkles', bg:'linear-gradient(135deg,#ffcfe9,#ff7ac0)', ink:'#5c123f', accent:'#db2777'},
+    {id:'plugg',  name:'Plugg',  icon:'book',     bg:'linear-gradient(135deg,#fdeeaa,#f6cf4a)', ink:'#4d3a02', accent:'#caa500'},
+  ];
+  theme(id){ return this.THEMES.find(t=>t.id===id) || this.THEMES[0]; }
+
+  // ---------- ICON SYSTEM (inline SVG, no emojis) ----------
+  ic(name, opt){
+    const h=React.createElement;
+    const size=(opt&&opt.size)||22, color=(opt&&opt.color)||'#2c2340', fill=opt&&opt.fill;
+    const op=opt&&opt.opacity!=null?opt.opacity:1;
+    const st={width:size,height:size,viewBox:'0 0 24 24',style:{display:'block',flexShrink:0,opacity:op}};
+    const stroke={...st,fill:'none',stroke:color,strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'};
+    const solid={...st,fill:color,stroke:'none'};
+    const P=(d,ex)=>h('path',Object.assign({d,key:Math.random()},ex));
+    const C=(cx,cy,r,ex)=>h('circle',Object.assign({cx,cy,r,key:Math.random()},ex));
+    const S={
+      bell:()=>h('svg',stroke,[P('M6 15v-4a6 6 0 1112 0v4l1.6 2H4.4L6 15z'),P('M9.5 20a2.5 2.5 0 005 0')]),
+      fire:()=>h('svg',{...solid,fill:'#ff7a4d'},[P('M12 2c1.2 3.6 4.5 5 4.5 8.7A4.5 4.5 0 0112 15a3.4 3.4 0 01-3.4-3.4c0-1.2.6-2 .6-2 .3 1.2 1.2 1.7 1.8 1.7C11 8.6 10.3 6 12 2z',{fill:'#ff7a4d'}),P('M12 22a5.5 5.5 0 005.5-5.5c0-2.6-1.8-4.2-2.6-5.2.2 2.4-1 3.6-1.9 4-.2-1.6-1-2.6-1.6-3.4-1.6 1.2-2.9 3-2.9 5A5.5 5.5 0 0012 22z',{fill:color})]),
+      coin:()=>h('svg',solid,[C(12,12,9,{fill:color}),P('M12 6.6l1.5 3.5 3.8.3-2.9 2.5.9 3.7L12 14.9 8.7 16.6l.9-3.7-2.9-2.5 3.8-.3z',{fill:'#fff',opacity:.9})]),
+      gift:()=>h('svg',stroke,[P('M4 12h16v8H4z'),P('M3 8h18v4H3z'),P('M12 8v12'),P('M12 8C10.5 8 8.5 7.4 8.5 5.8S10.5 4 12 8z'),P('M12 8c1.5 0 3.5-.6 3.5-2.2S13.5 4 12 8z')]),
+      target:()=>h('svg',stroke,[C(12,12,8.5),C(12,12,4.5),C(12,12,1)]),
+      home:()=>h('svg',stroke,[P('M3.5 11.5 12 4l8.5 7.5'),P('M5.5 10v10h13V10')]),
+      bag:()=>h('svg',stroke,[P('M6 8h12l1 12H5L6 8z'),P('M9 8V6.5a3 3 0 016 0V8')]),
+      user:()=>h('svg',stroke,[C(12,8,4),P('M4.5 20c.5-4 4-6 7.5-6s7 2 7.5 6')]),
+      camera:()=>h('svg',stroke,[P('M4 8.5h3.2l1.4-2.2h6.8l1.4 2.2H20a1 1 0 011 1V19a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5a1 1 0 011-1z'),C(12,13.5,3.2)]),
+      pin:()=>h('svg',solid,[P('M12 22s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z',{fill:color}),C(12,10,2.6,{fill:'#fff'})]),
+      check:()=>h('svg',stroke,[P('M5 12.5l4.5 4.5L19 7')]),
+      calendar:()=>h('svg',stroke,[P('M4 6.5h16V20a1 1 0 01-1 1H5a1 1 0 01-1-1z'),P('M4 10.5h16'),P('M8 3v4'),P('M16 3v4')]),
+      trophy:()=>h('svg',stroke,[P('M7 4h10v4a5 5 0 01-10 0z'),P('M17 5h3v1.5a3 3 0 01-3 3'),P('M7 5H4v1.5a3 3 0 003 3'),P('M12 13v3'),P('M8.5 20h7'),P('M10 16.5h4')]),
+      map:()=>h('svg',stroke,[P('M9 4 4 6v14l5-2 6 2 5-2V4l-5 2-6-2z'),P('M9 4v14'),P('M15 6v14')]),
+      locate:()=>h('svg',stroke,[C(12,12,3),C(12,12,7.5),P('M12 2v2.5'),P('M12 19.5V22'),P('M2 12h2.5'),P('M19.5 12H22')]),
+      arrowL:()=>h('svg',stroke,[P('M19 12H5'),P('M11 6l-6 6 6 6')]),
+      chev:()=>h('svg',{...stroke,stroke:color},[P('M9 6l6 6-6 6')]),
+      palette:()=>h('svg',stroke,[P('M12 3a9 9 0 100 18c1.2 0 1.8-1 1.5-2-.3-1 .4-2 1.5-2H18a3 3 0 003-3c0-5-4-9-9-9z'),C(7.5,11.5,1,{fill:color,stroke:'none'}),C(10,7.5,1,{fill:color,stroke:'none'}),C(14.5,7.5,1,{fill:color,stroke:'none'})]),
+      heart:()=>h('svg',solid,[P('M12 21s-7-4.5-7-10a4 4 0 018-1 4 4 0 018 1c0 5.5-7 10-7 10z',{fill:color})]),
+      book:()=>h('svg',stroke,[P('M5 4h13v14H6a1 1 0 00-1 1z'),P('M5 19a1 1 0 011-1h12')]),
+      soccer:()=>h('svg',stroke,[C(12,12,8.5),P('M12 8l3.2 2.3-1.2 3.9h-4L8.8 10.3z',{fill:color,stroke:'none'})]),
+      moon:()=>h('svg',solid,[P('M20 14.5A8 8 0 1110 4a6.5 6.5 0 0010 10.5z',{fill:color})]),
+      diamond:()=>h('svg',stroke,[P('M6 3.5h12l3 5-9 12L3 8.5z'),P('M3 8.5h18'),P('M9.5 3.5 8 8.5'),P('M14.5 3.5 16 8.5')]),
+      shirt:()=>h('svg',stroke,[P('M8 4l4 2 4-2 4 3-2.5 2.5V20H6.5V9.5L4 7z')]),
+      ticket:()=>h('svg',stroke,[P('M4 7h16v3a2 2 0 000 4v3H4v-3a2 2 0 000-4z'),P('M13 7v2'),P('M13 12v2'),P('M13 17v-2')]),
+      film:()=>h('svg',stroke,[P('M4 5h16v14H4z'),P('M9 5v14'),P('M15 5v14'),P('M4 9.5h5'),P('M4 14.5h5'),P('M15 9.5h5'),P('M15 14.5h5')]),
+      gamepad:()=>h('svg',stroke,[P('M8 9h8a4.5 4.5 0 014.5 4.5A2.5 2.5 0 0116 15l-1-1.2H9L8 15a2.5 2.5 0 01-4.5-1.5A4.5 4.5 0 018 9z'),P('M6.5 11.5v3'),P('M5 13h3'),C(16,12.5,.9,{fill:color,stroke:'none'}),C(17.8,14,.9,{fill:color,stroke:'none'})]),
+      sparkles:()=>h('svg',solid,[P('M11 3c.8 3 2 4.2 5 5-3 .8-4.2 2-5 5-.8-3-2-4.2-5-5 3-.8 4.2-2 5-5z',{fill:color}),P('M18.5 13c.4 1.5 1 2.1 2.5 2.5-1.5.4-2.1 1-2.5 2.5-.4-1.5-1-2.1-2.5-2.5 1.5-.4 2.1-1 2.5-2.5z',{fill:color})]),
+      coffee:()=>h('svg',stroke,[P('M5 8h11v4a5 5 0 01-11 0z'),P('M16 9h2.5a2.5 2.5 0 010 5H16'),P('M8 3.5c-.8 1 .8 1.8 0 3'),P('M12 3.5c-.8 1 .8 1.8 0 3')]),
+      wrench:()=>h('svg',stroke,[P('M14.5 6a4 4 0 00-5.2 5.2l-6 6 3 3 6-6A4 4 0 0017.5 8l-2.6 2.6-2-2z')]),
+      shield:()=>h('svg',stroke,[P('M12 3l7 2.6v5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9v-5z'),P('M9 12l2 2 4-4')]),
+      org:()=>h('svg',stroke,[P('M5 21V5.5a1 1 0 011-1h6a1 1 0 011 1V21'),P('M13 10h5a1 1 0 011 1v10'),P('M3 21h18'),P('M8 8h2'),P('M8 12h2'),P('M8 16h2'),P('M16 14h1'),P('M16 18h1')]),
+      role:()=>h('svg',{...stroke,strokeWidth:2,stroke:color,width:16,height:16,viewBox:'0 0 24 24',fill:'none'},[P('M6 3l1.5 4.5H12L8.5 10 10 15 6 12 2 15l1.5-5L0 7.5h4.5z',{transform:'translate(6 3) scale(.5)'})]),
+      status:()=>h('svg',{width:52,height:14,viewBox:'0 0 52 14',fill:color,style:{display:'block'}},[
+        P('M2 9h2v3H2zM6 7h2v5H6zM10 5h2v7h-2zM14 3h2v9h-2z',{fill:color}),
+        P('M22 6c2-2 5-2 7 0l-1 1c-1.4-1.3-3.6-1.3-5 0zM24 8c1-1 2.4-1 3.4 0l-1 1c-.4-.5-1-.5-1.4 0zM25.7 10l.9-.9.9.9-.9.9z',{fill:color}),
+        h('rect',{x:36,y:4,width:12,height:7,rx:1.6,fill:'none',stroke:color,strokeWidth:1.4,key:'b'}),
+        h('rect',{x:37.4,y:5.4,width:8,height:4.2,rx:.6,fill:color,key:'bf'}),
+        h('rect',{x:49,y:6,width:1.6,height:3,rx:.8,fill:color,key:'bt'})
+      ]),
+    };
+    return (S[name]||(()=>null))();
+  }
+
+  state = {
+    role:'ungdom', screen:'hem',
+    forening:'centrum',
+    foreningar:[
+      {id:'centrum', name:'Fritidsgården Centrum', color:'#2563eb', youth:48, activities:3, checkins:14},
+      {id:'norrby',  name:'Ungdomshuset Norrby',   color:'#7c3aed', youth:32, activities:2, checkins:9},
+      {id:'vaster',  name:'Aktivitetshuset Väster', color:'#f43f5e', youth:27, activities:4, checkins:6},
+    ],
+    points:1240, xp:720, xpMax:1000, level:7,
+    visits:34, streak:5,
+    scan:'idle', pendingUp:false, gainPts:0, gainXp:0,
+    geo:'searching', far:false,
+    showUp:false, toast:null,
+    pushBanner:null,
+    notifs:[
+      {id:1, icon:'target', tint:'#ede7ff', title:'Nytt uppdrag: Kvällsfik', body:'Kom förbi ikväll och få +50 XP.', time:'2 min sedan', unread:true},
+      {id:2, icon:'trophy', tint:'#fff3e0', title:'Du klättrade till plats 4!', body:'340 poäng till en pallplats.', time:'1 tim sedan', unread:true},
+      {id:3, icon:'gift', tint:'#dcfce7', title:'Belöning inom räckhåll', body:'Snart har du nog för en biobiljett.', time:'Igår', unread:false},
+      {id:4, icon:'fire', tint:'#ffe9d6', title:'5 dagars svit!', body:'Kom imorgon för att hålla din svit vid liv.', time:'Igår', unread:false},
+    ],
+    missions:[
+      {id:1, icon:'target', tint:'#ede7ff', title:'Besök 5 gånger', desc:'Kom till gården', prog:5, goal:5, xp:80, done:false},
+      {id:2, icon:'palette', tint:'#ffe9d6', title:'Gå på en workshop', desc:'Skaparkväll el. musik', prog:1, goal:1, xp:120, done:false},
+      {id:3, icon:'heart', tint:'#dcfce7', title:'Hjälp till på ett event', desc:'Bli volontär en kväll', prog:0, goal:1, xp:150, done:false},
+      {id:4, icon:'book', tint:'#e0f2fe', title:'Läxhjälp 3 pass', desc:'Plugga med stöd', prog:1, goal:3, xp:100, done:false},
+    ],
+    rewards:[
+      {id:1, icon:'coffee', tint:'#fff3e0', title:'Fika på gården', tag:'Kaffe + bulle', cost:150},
+      {id:2, icon:'film', tint:'#ede7ff', title:'Biobiljett', tag:'Valfri film', cost:900},
+      {id:3, icon:'ticket', tint:'#dcfce7', title:'Event-access', tag:'LAN / disco', cost:500},
+      {id:4, icon:'shirt', tint:'#fee2e2', title:'LEVLA-hoodie', tag:'Egen merch', cost:2000},
+      {id:5, icon:'gamepad', tint:'#e0f2fe', title:'Speltid', tag:'30 min VR', cost:300},
+      {id:6, icon:'sparkles', tint:'#fef9c3', title:'Avatar-skin', tag:'Guld-Gnista', cost:250},
+    ],
+    redeemed:{},
+    board:[
+      {rank:1, init:'M', name:'Maja L.', pts:2140, color:'#ffd23f'},
+      {rank:2, init:'N', name:'Noah P.', pts:1980, color:'#a24cf1'},
+      {rank:3, init:'L', name:'Liam S.', pts:1720, color:'#22c55e'},
+      {rank:4, init:'E', name:'Elias B. (du)', pts:1240, color:'#6c4cf1', me:true},
+      {rank:5, init:'A', name:'Alva K.', pts:1100, color:'#ff7a4d'},
+      {rank:6, init:'H', name:'Hugo R.', pts:980, color:'#0ea5e9'},
+      {rank:7, init:'S', name:'Selma T.', pts:840, color:'#ec4899'},
+    ],
+    attendance:[
+      {title:'Kvällsfik – Fritidsgården', date:'Igår 18:20', pts:50},
+      {title:'Skaparkväll: musik', date:'Mån 17:00', pts:120},
+      {title:'Läxhjälp', date:'Tors 15:30', pts:40},
+      {title:'Fotbollskväll', date:'Ons 18:00', pts:60},
+      {title:'Öppet hus', date:'Förra vec.', pts:50},
+    ],
+    badges:[
+      {icon:'fire', name:'5 i rad', tint:'#ffe9d6', color:'#ff7a4d', unlocked:true},
+      {icon:'palette', name:'Kreatör', tint:'#ede7ff', color:'#6c4cf1', unlocked:true},
+      {icon:'heart', name:'Hjälpsam', tint:'#dcfce7', color:'#22c55e', unlocked:true},
+      {icon:'soccer', name:'Sport', tint:'#e0f2fe', color:'#0ea5e9', unlocked:true},
+      {icon:'book', name:'Pluggis', tint:'#fef9c3', color:'#caa500', unlocked:false},
+      {icon:'moon', name:'Nattuggla', tint:'#f0ebff', color:'#7c6da0', unlocked:false},
+      {icon:'trophy', name:'Topp 3', tint:'#fff3e0', color:'#ff9500', unlocked:false},
+      {icon:'diamond', name:'Legend', tint:'#e0f2fe', color:'#0ea5e9', unlocked:false},
+    ],
+    activities:[
+      {id:1, title:'Kvällsfik', when:'Varje dag · 18:00', pts:50, place:'Entrén', theme:'fika'},
+      {id:2, title:'Skaparkväll: musik', when:'Måndag · 17:00', pts:120, place:'Studion', theme:'musik'},
+      {id:3, title:'Fotbollskväll', when:'Onsdag · 18:00', pts:60, place:'Sporthallen', theme:'sport'},
+    ],
+    youth:[
+      {id:1, init:'M', name:'Maja Lund', sub:'12 besök i månaden', color:'#ffd23f', present:false},
+      {id:2, init:'N', name:'Noah Persson', sub:'9 besök i månaden', color:'#a24cf1', present:false},
+      {id:3, init:'L', name:'Liam Svensson', sub:'7 besök i månaden', color:'#22c55e', present:false},
+      {id:4, init:'A', name:'Alva Karlsson', sub:'6 besök i månaden', color:'#ff7a4d', present:false},
+      {id:5, init:'H', name:'Hugo Roos', sub:'4 besök i månaden', color:'#0ea5e9', present:false},
+      {id:6, init:'S', name:'Selma Törnqvist', sub:'ny denna vecka', color:'#ec4899', present:false},
+    ],
+    checkedToday:14, awardedToday:820,
+    fTitle:'', fWhen:'', fPts:'', fTheme:'fika', adminPlaced:false, adminPinX:44, adminPinY:40,
+    bTitle:'', bIcon:'film', bCost:'',
+  };
+
+  componentDidMount(){
+    this._pb=setTimeout(()=>{
+      this.pushNotif({icon:'target', tint:'#ede7ff', title:'Fotbollskväll ikväll!', body:'Onsdag 18:00 · Sporthallen · +60 poäng'});
+    }, 2600);
+  }
+  componentWillUnmount(){ clearTimeout(this._pb); clearTimeout(this._tt); clearTimeout(this._st); clearTimeout(this._gt); clearTimeout(this._bt); }
+
+  toast(msg){ this.setState({toast:msg}); clearTimeout(this._tt); this._tt=setTimeout(()=>this.setState({toast:null}), 2200); }
+  go(s){ this.setState({screen:s}); }
+
+  pushNotif(n){
+    const item={id:Date.now(), time:'nu', unread:true, ...n};
+    this.setState(s=>({ notifs:[item, ...s.notifs], pushBanner:item }));
+    clearTimeout(this._bt);
+    this._bt=setTimeout(()=>this.setState({pushBanner:null}), 4200);
+  }
+  openPush(){ this.setState({pushBanner:null, role:'ungdom', screen:'notiser', notifs:this.state.notifs.map(n=>({...n,unread:false}))}); }
+  goNotiser(){ this.setState({screen:'notiser', notifs:this.state.notifs.map(n=>({...n,unread:false}))}); }
+
+  // geo-lock
+  goSkanna(){
+    this.setState({screen:'skanna', scan:'idle', geo:'searching', far:false});
+    clearTimeout(this._gt);
+    this._gt=setTimeout(()=>{ if(!this.state.far) this.setState({geo:'inrange'}); }, 1700);
+  }
+  toggleFar(){
+    const far=!this.state.far;
+    this.setState({far, geo: far?'far':'searching'});
+    if(!far){ clearTimeout(this._gt); this._gt=setTimeout(()=>{ if(!this.state.far) this.setState({geo:'inrange'}); }, 1200); }
+  }
+  startScan(){
+    if(this.state.geo!=='inrange' || this.state.scan!=='idle') return;
+    this.setState({scan:'scanning'});
+    clearTimeout(this._st);
+    this._st=setTimeout(()=>this.finishScan(), 1600);
+  }
+  finishScan(){
+    const pts=50, xpg=50, s=this.state;
+    let nx=s.xp+xpg, lvl=s.level, up=false;
+    if(nx>=s.xpMax){ nx-=s.xpMax; lvl=s.level+1; up=true; }
+    this.setState({
+      scan:'success', pendingUp:up, gainPts:pts, gainXp:xpg,
+      points:s.points+pts, xp:nx, level:lvl, visits:s.visits+1,
+      attendance:[{title:'Kvällsfik – Fritidsgården', date:'Idag 18:32', pts}, ...s.attendance],
+    });
+  }
+  contScan(){
+    if(this.state.pendingUp){ this.setState({scan:'idle', pendingUp:false, showUp:true, screen:'hem'}); }
+    else { this.setState({scan:'idle', screen:'hem'}); }
+  }
+  closeUp(){ this.setState({showUp:false}); }
+
+  claim(m){
+    if(m.done || m.prog<m.goal){ if(m.prog<m.goal) this.toast('Uppdraget är inte klart än'); return; }
+    this.setState(s=>({ points:s.points+m.xp, xp:Math.min(s.xpMax, s.xp+m.xp),
+      missions:s.missions.map(x=>x.id===m.id?{...x,done:true}:x) }));
+    this.toast('+'+m.xp+' XP inlöst!');
+  }
+  redeem(r){
+    if(this.state.redeemed[r.id]) return;
+    if(this.state.points<r.cost){ this.toast('Inte tillräckligt med poäng'); return; }
+    this.setState(s=>({ points:s.points-r.cost, redeemed:{...s.redeemed,[r.id]:true} }));
+    this.toast(r.title+' uttagen!');
+  }
+  markPresent(y){
+    if(y.present) return;
+    this.setState(s=>({ youth:s.youth.map(x=>x.id===y.id?{...x,present:true}:x),
+      checkedToday:s.checkedToday+1, awardedToday:s.awardedToday+30 }));
+    this.toast(y.name.split(' ')[0]+' incheckad · +30p');
+  }
+  onMapTap(e){
+    const r=e.currentTarget.getBoundingClientRect();
+    const x=Math.max(6,Math.min(94,Math.round((e.clientX-r.left)/r.width*100)));
+    const y=Math.max(14,Math.min(96,Math.round((e.clientY-r.top)/r.height*100)));
+    this.setState({adminPlaced:true, adminPinX:x, adminPinY:y});
+  }
+  addActivity(){
+    const t=this.state.fTitle.trim(); if(!t){ this.toast('Skriv ett namn'); return; }
+    if(!this.state.adminPlaced){ this.toast('Sätt en plats på kartan'); return; }
+    const pts=parseInt(this.state.fPts)||30, when=this.state.fWhen.trim()||'Ny · tid ej satt';
+    this.setState(s=>({
+      activities:[{id:Date.now(), title:t, when, pts, place:'Kartnål satt', theme:s.fTheme}, ...s.activities],
+      fTitle:'', fWhen:'', fPts:'', fTheme:'fika', adminPlaced:false, adminPinX:44, adminPinY:40,
+    }));
+    this.toast('Aktivitet upplagd');
+    this.pushNotif({icon:'target', tint:'#ede7ff', title:'Ny aktivitet: '+t, body:when+' · +'+pts+' poäng · checka in på plats'});
+  }
+  addReward(){
+    const t=this.state.bTitle.trim(); if(!t){ this.toast('Skriv ett namn'); return; }
+    const cost=parseInt(this.state.bCost)||100;
+    const tints={film:'#ede7ff',coffee:'#fff3e0',shirt:'#fee2e2',ticket:'#dcfce7',gamepad:'#e0f2fe'};
+    this.setState(s=>({
+      rewards:[{id:Date.now(), icon:s.bIcon, tint:tints[s.bIcon]||'#f0ebff', title:t, tag:'Ny belöning', cost}, ...s.rewards],
+      bTitle:'', bCost:'',
+    }));
+    this.toast('Belöning tillagd');
+  }
+
+  PALETTES={
+    'Lila':      {grad:'linear-gradient(135deg,#6c4cf1,#a24cf1)', up:'linear-gradient(180deg,#6c4cf1,#3b1e8f)', solid:'#6c4cf1'},
+    'Havsblå':   {grad:'linear-gradient(135deg,#2563eb,#06b6d4)', up:'linear-gradient(180deg,#2563eb,#1e3a8a)', solid:'#2563eb'},
+    'Solnedgång':{grad:'linear-gradient(135deg,#f43f5e,#fb923c)', up:'linear-gradient(180deg,#e11d63,#7c2d12)', solid:'#e11d63'},
+    'Cyber':     {grad:'linear-gradient(135deg,#7c3aed,#06b6d4)', up:'linear-gradient(180deg,#7c3aed,#0e7490)', solid:'#7c3aed'},
+  };
+  FEELS={
+    'Chill':{card:'0 6px 16px -12px rgba(40,30,80,.22)', hero:'0 10px 24px -14px rgba(40,30,80,.32)', fab:'0 8px 16px -8px rgba(108,76,241,.4)', mascot:'none', confetti:14},
+    'Lagom':{card:'0 12px 26px -18px rgba(108,76,241,.5)', hero:'0 18px 34px -16px rgba(108,76,241,.8)', fab:'0 12px 22px -6px rgba(108,76,241,.75)', mascot:'floaty 3.4s ease-in-out infinite', confetti:34},
+    'Max':  {card:'0 16px 34px -14px rgba(108,76,241,.65)', hero:'0 22px 44px -12px rgba(108,76,241,.92)', fab:'0 0 30px -2px var(--brand-solid), 0 14px 24px -6px rgba(108,76,241,.7)', mascot:'floaty 2.3s ease-in-out infinite', confetti:64},
+  };
+  CORNERS={ 'Rund':{card:'22px', fab:'50%'}, 'Mjuk':{card:'15px', fab:'20px'}, 'Kantig':{card:'7px', fab:'12px'} };
+
+  renderVals(){
+    const s=this.state, h=React.createElement;
+    const forg=s.foreningar.find(f=>f.id===s.forening)||s.foreningar[0];
+    const isKommun=s.role==='kommun';
+    const pal=this.PALETTES[this.props.palette]||this.PALETTES['Lila'];
+    const feel=this.FEELS[this.props.gameFeel]||this.FEELS['Lagom'];
+    const corn=this.CORNERS[this.props.corners]||this.CORNERS['Rund'];
+    const rootVars=`--brand-grad:${pal.grad};--up-grad:${pal.up};--brand-solid:${pal.solid};--card-rad:${corn.card};--fab-rad:${corn.fab};--card-shadow:${feel.card};--hero-shadow:${feel.hero};--fab-shadow:${feel.fab};--mascot-anim:${feel.mascot}`;
+    const confettiN=feel.confetti;
+    const isUngdom=s.role==='ungdom', isAdmin=s.role==='admin';
+    const xpPct=Math.round(s.xp/s.xpMax*100);
+    const fmt=n=>n.toLocaleString('sv-SE');
+    const tab=(k,label)=>({label, onClick:()=>this.go(k), bg:s.screen===k?'#2c2340':'#fff', color:s.screen===k?'#fff':'#8b7ab8'});
+    const ICON=(n,o)=>this.ic(n,o);
+    const iconTint={target:'#6c4cf1',palette:'#ff7a4d',heart:'#22c55e',book:'#0ea5e9',coffee:'#c07a1e',film:'#6c4cf1',ticket:'#22c55e',shirt:'#e05a6b',gamepad:'#0ea5e9',sparkles:'#caa500',trophy:'#ff9500',fire:'#ff7a4d',gift:'#22c55e'};
+
+    const geoMap={
+      searching:{title:'Letar efter din plats…', sub:'Kontrollerar att du är på gården', bg:'#2a2247', iconBg:'rgba(43,107,255,.25)', icon:ICON('locate',{color:'#7ea6ff',size:20})},
+      inrange:{title:'Du är på plats', sub:forg.name+' · 12 m bort', bg:'rgba(34,197,94,.22)', iconBg:'rgba(34,197,94,.35)', icon:ICON('check',{color:'#5ef0a0',size:20})},
+      far:{title:'Du är för långt bort', sub:'340 m från '+forg.name+' · gå närmare', bg:'rgba(255,77,141,.2)', iconBg:'rgba(255,77,141,.32)', icon:ICON('pin',{color:'#ff8fb4',size:20})},
+    }[s.geo];
+    const inRange=s.geo==='inrange';
+
+    return {
+      isUngdom, isAdmin, isKommun,
+      ungdomBtn:isUngdom?'background:var(--brand-grad,linear-gradient(135deg,#6c4cf1,#a24cf1));color:#fff':'',
+      adminBtn:isAdmin?'background:#2c2340;color:#fff':'',
+      kommunBtn:isKommun?'background:#2c2340;color:#fff':'',
+      goUngdom:()=>this.setState({role:'ungdom',screen:'hem'}),
+      goAdmin:()=>this.setState({role:'admin',screen:'aoversikt'}),
+      goKommun:()=>this.setState({role:'kommun'}),
+      icRoleGame:ICON('gamepad',{size:15,color:isUngdom?'#fff':'#9a8bc0'}),
+      icRoleAdmin:ICON('wrench',{size:15,color:isAdmin?'#fff':'#9a8bc0'}),
+      icRoleKommun:ICON('org',{size:15,color:isKommun?'#fff':'#9a8bc0'}),
+
+      // förening scoping
+      foreningName:forg.name, foreningColor:forg.color, forgYouth:forg.youth,
+      showForeningPicker:!isKommun,
+      cycleForening:()=>{const a=s.foreningar;const i=a.findIndex(f=>f.id===s.forening);this.setState({forening:a[(i+1)%a.length].id});this.toast('Bytte till '+a[(i+1)%a.length].name);},
+      icShield:ICON('shield',{size:20,color:pal.solid}),
+      totForeningar:s.foreningar.length,
+      totYouth:s.foreningar.reduce((n,f)=>n+f.youth,0),
+      totCheckins:s.foreningar.reduce((n,f)=>n+f.checkins,0),
+      foreningList:s.foreningar.map(f=>({...f, icon:ICON('org',{size:22,color:'#fff'}), openIcon:ICON('wrench',{size:14,color:'#fff'}),
+        onOpen:()=>this.setState({forening:f.id, role:'admin', screen:'aoversikt'})})),
+      icStatus:this.ic('status',{color:'#6b5aa0'}),
+
+      sHem:s.screen==='hem', sNotiser:s.screen==='notiser', sUppdrag:s.screen==='uppdrag',
+      sButik:s.screen==='butik', sTopp:s.screen==='topp', sProfil:s.screen==='profil', sNarvaro:s.screen==='narvaro',
+      sSkanna:s.screen==='skanna' && s.scan!=='success',
+      scanning:s.scan==='scanning', success:s.scan==='success', showUp:s.showUp,
+      showNav:isUngdom && s.scan==='idle' && !s.showUp && s.screen!=='skanna',
+
+      goHem:()=>this.setState({screen:'hem',scan:'idle'}), goUppdrag:()=>this.go('uppdrag'),
+      goButik:()=>this.go('butik'), goProfil:()=>this.go('profil'),
+      goNarvaro:()=>this.go('narvaro'), goSkanna:()=>this.goSkanna(), goNotiser:()=>this.goNotiser(),
+      oHem:s.screen==='hem'?1:.4, oUpp:s.screen==='uppdrag'?1:.4, oBut:s.screen==='butik'?1:.4, oPro:s.screen==='profil'?1:.4,
+
+      // static icons
+      icBell:ICON('bell',{size:20,color:'#6c4cf1'}), icFire:ICON('fire',{size:17}),
+      icCoinP:ICON('coin',{size:17,color:'#6c4cf1'}), icGiftW:ICON('gift',{size:16,color:'#fff'}),
+      icPinSm:ICON('pin',{size:16,color:'#6c4cf1'}), icCalendar:ICON('calendar',{size:19,color:'#6c4cf1'}),
+      icChevR:ICON('chev',{size:18,color:'#6c4cf1'}), icArrowL:ICON('arrowL',{size:18,color:'#2c2340'}),
+      icArrowLW:ICON('arrowL',{size:18,color:'#fff'}), icTrophy:ICON('trophy',{size:20,color:'#ff9500'}),
+      icCheckG:ICON('check',{size:19,color:'#22c55e'}), icCameraW:ICON('camera',{size:24,color:'#fff'}),
+      icHome:ICON('home',{size:22}), icTarget:ICON('target',{size:22}), icBag:ICON('bag',{size:22}), icUser:ICON('user',{size:22}),
+      icCheckP:ICON('check',{size:20,color:'#6c4cf1'}), icPinP:ICON('pin',{size:20,color:'#6c4cf1'}), icGiftP:ICON('gift',{size:20,color:'#6c4cf1'}),
+      icGeoTiny:ICON('pin',{size:11,color:'#9a8bc0'}),
+
+      hasUnread:s.notifs.some(n=>n.unread), unreadCount:s.notifs.filter(n=>n.unread).length,
+      notifs:s.notifs.map(n=>({...n, bg:n.unread?'#f6f2ff':'#fff', iconEl:ICON(n.icon,{size:20,color:iconTint[n.icon]||'#6c4cf1'})})),
+
+      greeting:'God kväll', pepp:'Nice svit — fortsätt så!',
+      level:s.level, nextLevel:s.level+1, levelName:this.LNAME(s.level),
+      xpPct, xpLeft:s.xpMax-s.xp, points:s.points, pointsFmt:fmt(s.points), visits:s.visits, streak:s.streak,
+
+      homeMissions:s.missions.slice(0,2).map(m=>({...m, onClick:()=>this.go('uppdrag'), iconEl:ICON(m.icon,{size:22,color:iconTint[m.icon]})})),
+      recent:s.attendance.slice(0,3),
+
+      missions:s.missions.map(m=>{
+        const pct=Math.round(m.prog/m.goal*100), ready=m.prog>=m.goal && !m.done;
+        return {...m, pct, iconEl:ICON(m.icon,{size:23,color:iconTint[m.icon]}),
+          progText:m.done?'Klart':m.prog+'/'+m.goal,
+          claimText:m.done?'✓ Inlöst':(ready?'Lös in +'+m.xp+' XP':'Pågår ('+m.prog+'/'+m.goal+')'),
+          claimBg:m.done?'#f0ebff':(ready?'linear-gradient(135deg,#22c55e,#16a34a)':'#f4f2fb'),
+          claimColor:m.done?'#9a8bc0':(ready?'#fff':'#9a8bc0'), onClaim:()=>this.claim(m)};
+      }),
+
+      rewards:s.rewards.map(r=>{
+        const done=!!s.redeemed[r.id], afford=s.points>=r.cost;
+        const label=done?h('span',{key:'d'},'✓ Uttagen'):h('span',{key:'c',style:{display:'flex',alignItems:'center',gap:5}},ICON('coin',{size:14,color:afford?'#fff':'#c3b8e0'}),r.cost);
+        return {...r, op:done?.55:1, iconBig:ICON(r.icon,{size:32,color:iconTint[r.icon]||'#6c4cf1'}), iconEl:ICON(r.icon,{size:20,color:iconTint[r.icon]||'#6c4cf1'}),
+          labelEl:label, bg:done?'#f0ebff':(afford?'var(--brand-grad,linear-gradient(135deg,#6c4cf1,#a24cf1))':'#f4f2fb'),
+          color:done?'#9a8bc0':(afford?'#fff':'#c3b8e0'), onRedeem:()=>this.redeem(r)};
+      }),
+
+      podium:[s.board[1],s.board[0],s.board[2]].map((p,i)=>({
+        init:p.init, name:p.name.split(' ')[0], pts:p.pts, place:[2,1,3][i],
+        medalBg:['#d7d7e0','#ffd23f','#e6b98a'][i], color:p.color, bar:i===1?'#ffd23f':'#c9bdf0', av:i===1?58:48, h:i===1?70:52,
+      })),
+      board:s.board.map(b=>({...b, bg:b.me?'#ede7ff':'#fff', border:b.me?'2px solid #6c4cf1':'2px solid transparent'})),
+
+      badges:s.badges.map(b=>({...b, op:b.unlocked?1:.4, iconEl:ICON(b.icon,{size:24,color:b.unlocked?b.color:'#9a8bc0'})})),
+      attendance:s.attendance,
+
+      // geo / scan
+      actPinX:44, actPinY:52, icPinMap:ICON('pin',{size:34,color:'#ff4d8d'}),
+      geoTitle:geoMap.title, geoSub:geoMap.sub, geoBg:geoMap.bg, geoIconBg:geoMap.iconBg, geoIcon:geoMap.icon,
+      qrOpacity:inRange?1:.4,
+      scanHint:s.scan==='scanning'?'Läser av QR-koden…':(inRange?'Rikta kameran mot QR-koden vid entrén':'Lås upp genom att vara på plats'),
+      scanCta:s.scan==='scanning'?'Läser av…':(inRange?'Simulera skanning':'Väntar på plats…'),
+      scanDisabled:!inRange||s.scan==='scanning',
+      scanCtaBg:inRange?'linear-gradient(135deg,#ffd23f,#ffb800)':'rgba(255,255,255,.12)',
+      scanCtaColor:inRange?'#2c2340':'rgba(255,255,255,.5)',
+      scanCtaShadow:inRange?'0 14px 26px -12px rgba(255,210,63,.7)':'none',
+      doScan:()=>this.startScan(), toggleFar:()=>this.toggleFar(),
+      farToggleLabel:s.far?'↺ Simulera att jag är på plats':'Simulera att jag är för långt bort',
+      contScan:()=>this.contScan(), closeUp:()=>this.closeUp(), gainPts:s.gainPts, gainXp:s.gainXp,
+
+      // admin
+      adminTabs:[tab('aoversikt','Översikt'),tab('aakt','Aktiviteter'),tab('anarvaro','Närvaro'),tab('abelon','Belöningar')],
+      aOversikt:s.screen==='aoversikt', aAkt:s.screen==='aakt', aNarvaro:s.screen==='anarvaro', aBelon:s.screen==='abelon',
+      goANarvaro:()=>this.go('anarvaro'), goAAkt:()=>this.go('aakt'), goABelon:()=>this.go('abelon'),
+      checkedToday:s.checkedToday, awardedToday:fmt(s.awardedToday),
+      activities:s.activities.map(a=>{const t=this.theme(a.theme);return {...a, bg:t.bg, ink:t.ink,
+        iconEl:ICON(t.icon,{size:22,color:t.accent}), pinEl:ICON('pin',{size:11,color:t.ink}),
+        watermark:ICON(t.icon,{size:76,color:t.ink,opacity:.16})};}),
+      themePicker:this.THEMES.map(t=>({...t, sel:s.fTheme===t.id, onPick:()=>this.setState({fTheme:t.id}),
+        ring:s.fTheme===t.id?'2.5px solid #2c2340':'2.5px solid transparent',
+        iconEl:ICON(t.icon,{size:34,color:t.ink}), check:ICON('check',{size:12,color:'#2c2340'})})),
+      prevBg:this.theme(s.fTheme).bg, prevInk:this.theme(s.fTheme).ink,
+      prevIcon:ICON(this.theme(s.fTheme).icon,{size:70,color:this.theme(s.fTheme).ink,opacity:.16}),
+      prevTitle:s.fTitle.trim()||'Aktivitetens namn', prevWhen:s.fWhen.trim()||'Tid', prevPts:parseInt(s.fPts)||30,
+      youth:s.youth.map(y=>({...y,
+        labelEl:y.present?h('span',{key:'p',style:{display:'flex',alignItems:'center',gap:4}},ICON('check',{size:14,color:'#16a34a'}),'+30p'):h('span',{key:'m'},'Markera'),
+        bg:y.present?'#dcfce7':'#2c2340', color2:y.present?'#16a34a':'#fff', onMark:()=>this.markPresent(y)})),
+      fTitle:s.fTitle, fWhen:s.fWhen, fPts:s.fPts, bTitle:s.bTitle, bIcon:s.bIcon, bCost:s.bCost,
+      onFTitle:e=>this.setState({fTitle:e.target.value}), onFWhen:e=>this.setState({fWhen:e.target.value}), onFPts:e=>this.setState({fPts:e.target.value}),
+      onBTitle:e=>this.setState({bTitle:e.target.value}), onBIcon:e=>this.setState({bIcon:e.target.value}), onBCost:e=>this.setState({bCost:e.target.value}),
+      addActivity:()=>this.addActivity(), addReward:()=>this.addReward(),
+      onMapTap:e=>this.onMapTap(e), adminPlaced:s.adminPlaced, adminNotPlaced:!s.adminPlaced, adminPinX:s.adminPinX, adminPinY:s.adminPinY,
+      icPinMapP:ICON('pin',{size:32,color:'#6c4cf1'}),
+      placeStatus:s.adminPlaced?'Plats satt ✓':'Ej satt', placeStatusColor:s.adminPlaced?'#22c55e':'#9a8bc0',
+
+      // push
+      pushBanner:s.pushBanner, pushTitle:s.pushBanner&&s.pushBanner.title, pushBody:s.pushBanner&&s.pushBanner.body,
+      openPush:()=>this.openPush(),
+
+      rootVars,
+      confetti:s.showUp ? Array.from({length:confettiN}).map((_,i)=>{
+        const cols=['#ffd23f','#22c55e','#ff7a4d','#ff4d8d','#ffffff','#7ce0ff'];
+        return h('div',{key:i,style:{position:'absolute',top:'-30px',left:(Math.random()*100)+'%',
+          width:(6+Math.random()*4)+'px',height:(8+Math.random()*10)+'px',background:cols[i%cols.length],borderRadius:'2px',
+          animation:`confFall ${1.6+Math.random()*1.6}s linear ${Math.random()*0.8}s infinite`,transform:`rotate(${Math.random()*360}deg)`}});
+      }) : null,
+
+      toast:s.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
