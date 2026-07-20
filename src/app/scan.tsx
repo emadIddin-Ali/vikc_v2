@@ -5,14 +5,13 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Animated, Pressable, ScrollView, StyleSheet, Switch, Text, View,
+  ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Confetti } from '@/components/Confetti';
 import { Floaty } from '@/components/Floaty';
 import { Icon, IconName } from '@/components/Icon';
-import { Mascot } from '@/components/Mascot';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { MascotCelebration } from '@/components/MascotCelebration';
 import { claimNewBadges } from '@/lib/badgeSeen';
 import { haptics } from '@/lib/haptics';
 import { useCheckin, useOpenCheckin, useYouthOpenActivities } from '@/hooks/useCheckin';
@@ -60,8 +59,6 @@ export default function Scan() {
   const [permission, requestPermission] = useCameraPermissions();
   const [busyId, setBusyId] = useState<string | null>(null);
   const handledRef = useRef(false);
-  const reduced = useReducedMotion();
-  const ping = useRef(new Animated.Value(0)).current;
 
   const { data: activities } = useQuery<Activity[]>({
     queryKey: ['scan-activities', foreningId],
@@ -117,14 +114,6 @@ export default function Scan() {
     if (mode === 'success') haptics.success();
     else if (mode === 'levelup' || mode === 'badge') haptics.medium();
   }, [mode]);
-
-  useEffect(() => {
-    if (mode !== 'success' || reduced) return;
-    ping.setValue(0);
-    const anim = Animated.loop(Animated.timing(ping, { toValue: 1, duration: 1200, useNativeDriver: true }));
-    anim.start();
-    return () => anim.stop();
-  }, [mode, reduced, ping]);
 
   const inRange = geo === 'inrange';
   const busy = checkin.isPending || openCheckin.isPending || busyId !== null;
@@ -219,20 +208,7 @@ export default function Scan() {
   if (mode === 'success' && result) {
     return (
       <LinearGradient colors={gradients.success} style={styles.celebrate}>
-        <View style={styles.pingWrap}>
-          <Animated.View
-            style={[
-              styles.pingCircle,
-              {
-                transform: [{ scale: ping.interpolate({ inputRange: [0, 1], outputRange: [0.6, 2.4] }) }],
-                opacity: ping.interpolate({ inputRange: [0, 1], outputRange: [0.7, 0] }),
-              },
-            ]}
-          />
-          <View style={styles.mascotCircle}>
-            <Mascot size={60} mouth="grin" />
-          </View>
-        </View>
+        <MascotCelebration size={114} mascotSize={66} />
         <Text style={styles.celebrateTitle}>Incheckad!</Text>
         <Text style={styles.celebrateSub}>{result.title} · {result.forening}</Text>
         <View style={styles.chips}>
@@ -257,9 +233,14 @@ export default function Scan() {
       <LinearGradient colors={gradients.levelUp} style={styles.celebrate}>
         <Confetti />
         <Text style={styles.levelKicker}>LEVEL UP</Text>
-        <Floaty style={{ marginVertical: 14 }}>
-          <Mascot size={130} eyes mouth="grin" />
-        </Floaty>
+        <MascotCelebration
+          size={128}
+          mascotSize={112}
+          disc={false}
+          rayColor="rgba(255,210,63,0.5)"
+          ringColor="rgba(255,210,63,0.45)"
+          glowColor="rgba(255,210,63,0.16)"
+        />
         <Text style={styles.levelBig}>Nivå {result.level}!</Text>
         <Text style={styles.levelName}>{levelName(result.level)}</Text>
         <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.gold }]} onPress={afterLevel}>
@@ -451,9 +432,6 @@ const styles = StyleSheet.create({
   toggleLabel: { fontFamily: font.medium, fontSize: 12.5, color: 'rgba(255,255,255,0.8)' },
 
   celebrate: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
-  pingWrap: { alignItems: 'center', justifyContent: 'center' },
-  pingCircle: { position: 'absolute', width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(255,255,255,0.25)' },
-  mascotCircle: { width: 110, height: 110, borderRadius: 55, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   celebrateTitle: { fontFamily: font.bold, fontSize: 26, color: colors.white, marginTop: 24 },
   celebrateSub: { fontFamily: font.medium, fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 4, textAlign: 'center' },
   chips: { flexDirection: 'row', gap: 14, marginTop: 26 },
