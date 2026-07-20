@@ -1,16 +1,19 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 import { BadgeCell } from '@/components/Badge';
 import { Card } from '@/components/Card';
 import { Icon, IconName } from '@/components/Icon';
 import { Mascot } from '@/components/Mascot';
 import { Screen } from '@/components/Screen';
+import { CountUp } from '@/components/ui/CountUp';
+import { FadeIn } from '@/components/ui/FadeIn';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { Tappable } from '@/components/ui/Tappable';
 import { highlightBadges, useProfileData } from '@/hooks/useProfile';
 import { playSfx, useSfxStore } from '@/lib/sfx';
-import { colors, fmt, font, gradients, levelName, radius, shadow } from '@/theme/tokens';
+import { colors, font, gradients, levelName, radius, shadow } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function Profil() {
@@ -56,13 +59,13 @@ export default function Profil() {
 
       {/* Stats */}
       <View style={styles.stats}>
-        <StatCard icon="coin" tint={colors.primary} value={fmt(stats.points)} label="Poäng" />
-        <StatCard icon="calendar" tint={colors.info} value={String(stats.visits)} label="Besök" />
-        <StatCard icon="fire" tint={colors.orange} value={String(stats.streak)} label="Svit" />
+        <StatCard icon="coin" tint={colors.primary} value={stats.points} label="Poäng" index={0} />
+        <StatCard icon="calendar" tint={colors.info} value={stats.visits} label="Besök" index={1} />
+        <StatCard icon="fire" tint={colors.orange} value={stats.streak} label="Svit" index={2} />
       </View>
 
       {/* Min närvaro */}
-      <Pressable onPress={() => router.push('/ungdom/narvaro')}>
+      <Tappable onPress={() => router.push('/ungdom/narvaro')}>
         <Card style={styles.navRow}>
           <View style={styles.navTile}>
             <Icon name="calendar" size={20} color={colors.primary} />
@@ -73,10 +76,10 @@ export default function Profil() {
           </View>
           <Icon name="chev" size={18} color={colors.faint} />
         </Card>
-      </Pressable>
+      </Tappable>
 
       {/* Märken — earned first, then the nearest goals; full catalog one tap away */}
-      <Pressable onPress={() => router.push('/ungdom/marken')}>
+      <Tappable scale={0.985} onPress={() => router.push('/ungdom/marken')}>
         <View style={styles.sectionRow}>
           <Text style={styles.sectionInline}>Märken</Text>
           <View style={styles.sectionLink}>
@@ -90,19 +93,21 @@ export default function Profil() {
           <Text style={styles.empty}>Märken laddas …</Text>
         ) : (
           <View style={styles.badgeGrid}>
-            {highlightBadges(badges).map((b) => (
-              <BadgeCell key={b.code} badge={b} style={styles.badgeCell} />
+            {highlightBadges(badges).map((b, i) => (
+              <FadeIn key={b.code} index={i} style={styles.badgeCell}>
+                <BadgeCell badge={b} />
+              </FadeIn>
             ))}
           </View>
         )}
-      </Pressable>
+      </Tappable>
 
       {/* Förening switcher */}
       <Text style={styles.section}>Din förening</Text>
       {memberships.map((m) => {
         const active = m.forening_id === activeMembership?.forening_id;
         return (
-          <Pressable key={m.id} onPress={() => setActiveForeningId(m.forening_id)}>
+          <Tappable key={m.id} onPress={() => setActiveForeningId(m.forening_id)}>
             <Card style={[styles.row, active && styles.rowActive]}>
               <View style={[styles.dot, { backgroundColor: m.forening?.color ?? colors.primary }]} />
               <View style={{ flex: 1 }}>
@@ -111,7 +116,7 @@ export default function Profil() {
               </View>
               {active && <Icon name="check" size={18} color={colors.green} />}
             </Card>
-          </Pressable>
+          </Tappable>
         );
       })}
 
@@ -144,13 +149,27 @@ export default function Profil() {
   );
 }
 
-function StatCard({ icon, tint, value, label }: { icon: IconName; tint: string; value: string; label: string }) {
+function StatCard({
+  icon,
+  tint,
+  value,
+  label,
+  index,
+}: {
+  icon: IconName;
+  tint: string;
+  value: number;
+  label: string;
+  index: number;
+}) {
   return (
-    <Card style={styles.statCard}>
-      <Icon name={icon} size={18} color={tint} />
-      <Text style={[styles.statValue, { color: tint }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </Card>
+    <FadeIn index={index} style={{ flex: 1 }}>
+      <Card style={styles.statCard}>
+        <Icon name={icon} size={18} color={tint} />
+        <CountUp value={value} style={[styles.statValue, { color: tint }]} />
+        <Text style={styles.statLabel}>{label}</Text>
+      </Card>
+    </FadeIn>
   );
 }
 

@@ -1,9 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
+import { FadeIn } from '@/components/ui/FadeIn';
+import { Tappable } from '@/components/ui/Tappable';
 import { useClaimMission, useMissions } from '@/hooks/useMissions';
 import { ICON_TINT, colors, font, gradients, radius } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
@@ -34,7 +36,7 @@ export default function Uppdrag() {
         <Text style={styles.weeklyMeta}>{weekDays} / 3 dagar · vinst: 200 poäng</Text>
       </LinearGradient>
 
-      {missions.map((m) => {
+      {missions.map((m, i) => {
         const prog = m.mission_progress?.[0];
         const progress = prog?.progress ?? 0;
         const done = prog?.done ?? false;
@@ -43,7 +45,8 @@ export default function Uppdrag() {
         const tint = ICON_TINT[m.icon] ?? colors.primary;
 
         return (
-          <Card key={m.id} style={styles.card}>
+          <FadeIn key={m.id} index={i}>
+          <Card style={styles.card}>
             <View style={styles.cardTop}>
               <View style={[styles.tile, { backgroundColor: m.tint }]}>
                 <Icon name={m.icon as any} size={23} color={tint} />
@@ -66,17 +69,18 @@ export default function Uppdrag() {
                 <Text style={[styles.btnText, { color: colors.muted2 }]}>✓ Inlöst</Text>
               </View>
             ) : ready ? (
-              <Pressable disabled={claim.isPending} onPress={() => claim.mutate(m.id)}>
+              <Tappable disabled={claim.isPending} scale={0.96} onPress={() => claim.mutate(m.id)}>
                 <LinearGradient colors={gradients.success} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.btn}>
                   <Text style={[styles.btnText, { color: colors.white }]}>Lös in +{m.xp} XP</Text>
                 </LinearGradient>
-              </Pressable>
+              </Tappable>
             ) : (
               <View style={[styles.btn, { backgroundColor: '#f4f2fb' }]}>
                 <Text style={[styles.btnText, { color: colors.muted2 }]}>Pågår ({progress}/{m.goal})</Text>
               </View>
             )}
           </Card>
+          </FadeIn>
         );
       })}
     </Screen>

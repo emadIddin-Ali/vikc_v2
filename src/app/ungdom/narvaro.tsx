@@ -1,10 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
+import { FadeIn } from '@/components/ui/FadeIn';
+import { Tappable } from '@/components/ui/Tappable';
 import { useAttendanceList, useProfileData } from '@/hooks/useProfile';
 import { fmtDateTime } from '@/lib/date';
 import { colors, font, gradients, radius, shadow } from '@/theme/tokens';
@@ -27,9 +29,9 @@ export default function Narvaro() {
   return (
     <Screen>
       <View style={styles.titleRow}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
+        <Tappable onPress={() => router.back()} hitSlop={10} scale={0.9} style={styles.back}>
           <Icon name="arrowL" size={18} color={colors.ink} />
-        </Pressable>
+        </Tappable>
         <View>
           <Text style={styles.h1}>Min närvaro</Text>
           <Text style={styles.sub}>{forening}</Text>
@@ -51,17 +53,19 @@ export default function Narvaro() {
       {checkins.length === 0 ? (
         <Text style={styles.empty}>Inga incheckningar än — checka in på gården för din första!</Text>
       ) : (
-        checkins.map((c) => (
-          <Card key={c.id} style={styles.row}>
-            <View style={styles.tile}>
-              <Icon name="check" size={18} color={colors.green} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.rowTitle}>{c.title ?? 'Incheckning'}</Text>
-              <Text style={styles.rowDate}>{fmtDateTime(new Date(c.created_at))}</Text>
-            </View>
-            <Text style={styles.rowPts}>+{c.awarded_points}</Text>
-          </Card>
+        checkins.map((c, i) => (
+          <FadeIn key={c.id} index={i}>
+            <Card style={styles.row}>
+              <View style={styles.tile}>
+                <Icon name="check" size={18} color={colors.green} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>{c.title ?? 'Incheckning'}</Text>
+                <Text style={styles.rowDate}>{fmtDateTime(new Date(c.created_at))}</Text>
+              </View>
+              <Text style={styles.rowPts}>+{c.awarded_points}</Text>
+            </Card>
+          </FadeIn>
         ))
       )}
     </Screen>

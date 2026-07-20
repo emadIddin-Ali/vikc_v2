@@ -1,27 +1,27 @@
+import { Confetti } from '@/components/Confetti';
+import { Floaty } from '@/components/Floaty';
+import { Icon, IconName } from '@/components/Icon';
+import { MascotCelebration } from '@/components/MascotCelebration';
+import { useCheckin, useOpenCheckin, useYouthOpenActivities } from '@/hooks/useCheckin';
+import { claimNewBadges } from '@/lib/badgeSeen';
+import { haptics } from '@/lib/haptics';
+import { capturePhoto, uploadCheckinPhoto } from '@/lib/photo';
+import { playSfx } from '@/lib/sfx';
+import { supabase } from '@/lib/supabase';
+import type { Activity, BadgeRow, CheckinResult, YouthOpenActivity } from '@/lib/types';
+import { useAuth } from '@/providers/AuthProvider';
+import { toast } from '@/store/toast';
+import { colors, font, gradients, levelName } from '@/theme/tokens';
+import { useQuery } from '@tanstack/react-query';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Confetti } from '@/components/Confetti';
-import { Floaty } from '@/components/Floaty';
-import { Icon, IconName } from '@/components/Icon';
-import { MascotCelebration } from '@/components/MascotCelebration';
-import { claimNewBadges } from '@/lib/badgeSeen';
-import { haptics } from '@/lib/haptics';
-import { playSfx } from '@/lib/sfx';
-import { useCheckin, useOpenCheckin, useYouthOpenActivities } from '@/hooks/useCheckin';
-import { capturePhoto, uploadCheckinPhoto } from '@/lib/photo';
-import { supabase } from '@/lib/supabase';
-import { toast } from '@/store/toast';
-import type { Activity, BadgeRow, CheckinResult, YouthOpenActivity } from '@/lib/types';
-import { colors, font, gradients, levelName } from '@/theme/tokens';
-import { useAuth } from '@/providers/AuthProvider';
 
 type GeoState = 'searching' | 'inrange' | 'far';
 
@@ -301,7 +301,7 @@ export default function Scan() {
   }
 
   const geoUi = {
-    searching: { bg: '#2a2247', title: 'Letar efter din plats…', sub: 'Kontrollerar att du är på gården', icon: 'locate' as const, iconColor: '#7ea6ff' },
+    searching: { bg: '#2a2247', title: 'Letar efter din plats…', sub: 'Kontrollerar att du är på rätt plats', icon: 'locate' as const, iconColor: '#7ea6ff' },
     inrange: { bg: 'rgba(34,197,94,0.22)', title: 'Du är på plats', sub: simulateOnSite ? 'Simulerad plats' : `${forening?.name ?? ''} · ${distance != null ? Math.round(distance) + ' m bort' : 'på plats'}`, icon: 'check' as const, iconColor: '#5ef0a0' },
     far: { bg: 'rgba(255,77,141,0.2)', title: 'Du är för långt bort', sub: distance != null ? `${Math.round(distance)} m bort · gå närmare` : 'Gå närmare gården', icon: 'pin' as const, iconColor: '#ff8fb4' },
   }[geo];

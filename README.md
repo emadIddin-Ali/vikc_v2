@@ -132,7 +132,8 @@ supabase/                  # migrations + seed
 - ✅ Polish — animationer (konfetti, floaty maskot, ping, XP-bar, toast-slide) + haptik, respekterar *reduce motion*
 - ✅ Firande-maskot — Gnista fjädrar in i överstorlek på strålkrans med pulserande ringar vid incheckning och level up
 - ✅ Ljud-SFX (`expo-audio`) vid incheckning, level up, nytt märke och poängväxling. Ljuden är **genererade** av `scripts/gen-sfx.mjs` (licensfria, ändra noterna och kör om). Mixas med annat ljud och respekterar iOS tystläge; av/på i profilen
-- ⏭️ Näst: fler mikrointeraktioner → tillgänglighet/tester
+- ✅ Mikrointeraktioner — tryckfeedback på allt tappbart (`Tappable`), siffror som räknar upp/ned (`CountUp`), listor som tonar in i tur och ordning (`FadeIn`), tabbikon som poppar vid byte. Allt respekterar *reduce motion*
+- ⏭️ Näst: tillgänglighet/tester
 
 ## Development build (aktiverar push + laddar snabbare än Expo Go)
 Riktig push kräver en dev build — Expo Go (SDK 54) stödjer inte remote push. **`eas.json`, bygg-identifierare (`com.levla.app`) och `expo-dev-client` är redan uppsatta.** En dev build laddar dessutom snabbare än Expo Go (löser laddningsstrulet) och stödjer alla native-moduler. När du vill:

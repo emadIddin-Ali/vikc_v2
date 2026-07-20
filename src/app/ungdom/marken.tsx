@@ -1,10 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { BadgeListRow } from '@/components/Badge';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
+import { FadeIn } from '@/components/ui/FadeIn';
+import { Tappable } from '@/components/ui/Tappable';
 import { groupBadges, useProfileData } from '@/hooks/useProfile';
 import { colors, font, gradients, radius, shadow } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
@@ -26,9 +28,9 @@ export default function Marken() {
   return (
     <Screen>
       <View style={styles.topRow}>
-        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back}>
+        <Tappable onPress={() => router.back()} hitSlop={10} scale={0.9} style={styles.back}>
           <Icon name="arrowL" size={18} color={colors.ink} />
-        </Pressable>
+        </Tappable>
         <Text style={styles.h1}>Märken</Text>
       </View>
 
@@ -64,8 +66,10 @@ export default function Marken() {
                 {done}/{group.items.length}
               </Text>
             </View>
-            {group.items.map((b) => (
-              <BadgeListRow key={b.code} badge={b} />
+            {group.items.map((b, i) => (
+              <FadeIn key={b.code} index={i}>
+                <BadgeListRow badge={b} />
+              </FadeIn>
             ))}
           </View>
         );

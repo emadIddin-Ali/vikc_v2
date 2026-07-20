@@ -7,12 +7,14 @@ import { Icon } from '@/components/Icon';
 import { Floaty } from '@/components/Floaty';
 import { Mascot } from '@/components/Mascot';
 import { Screen } from '@/components/Screen';
+import { CountUp } from '@/components/ui/CountUp';
+import { FadeIn } from '@/components/ui/FadeIn';
+import { Tappable } from '@/components/ui/Tappable';
 import { useHomeData } from '@/hooks/useHomeData';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { fmtDateTime } from '@/lib/date';
 import {
-  ICON_TINT, XP_MAX, activityTheme, colors, font, gradients, greetingForNow, levelName, radius, shadow,
-  fmt, relativeDate,
+  ICON_TINT, XP_MAX, activityTheme, colors, font, gradients, greetingForNow, levelName, radius, shadow, relativeDate,
 } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -61,17 +63,17 @@ export default function Hem() {
           <Text style={styles.name}>{name}</Text>
         </View>
         <View style={styles.headerRight}>
-          <Pressable style={styles.bell} hitSlop={6} onPress={() => router.push('/ungdom/topplista')}>
+          <Tappable style={styles.bell} scale={0.88} hitSlop={6} onPress={() => router.push('/ungdom/topplista')}>
             <Icon name="trophy" size={20} color="#ff9500" />
-          </Pressable>
-          <Pressable style={styles.bell} hitSlop={6} onPress={() => router.push('/ungdom/notiser')}>
+          </Tappable>
+          <Tappable style={styles.bell} scale={0.88} hitSlop={6} onPress={() => router.push('/ungdom/notiser')}>
             <Icon name="bell" size={20} color={colors.primary} />
             {unread > 0 && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{unread}</Text>
               </View>
             )}
-          </Pressable>
+          </Tappable>
           <View style={styles.streak}>
             <Icon name="fire" size={17} color={colors.orange} />
             <Text style={styles.streakText}>{streak}</Text>
@@ -105,17 +107,17 @@ export default function Hem() {
           <Text style={styles.duoLabel}>Poäng</Text>
           <View style={styles.duoValueRow}>
             <Icon name="coin" size={17} color={colors.primary} />
-            <Text style={styles.points}>{fmt(points)}</Text>
+            <CountUp value={points} style={styles.points} />
           </View>
         </Card>
 
-        <Pressable style={[styles.duoCard, styles.rewardsCta]} onPress={() => router.push('/ungdom/butik')}>
+        <Tappable containerStyle={{ flex: 1 }} style={[styles.duoCard, styles.rewardsCta]} onPress={() => router.push('/ungdom/butik')}>
           <Text style={styles.rewardsLabel}>Belöningar</Text>
           <View style={styles.duoValueRow}>
             <Icon name="gift" size={16} color={colors.white} />
             <Text style={styles.rewardsText}>Byt poäng</Text>
           </View>
-        </Pressable>
+        </Tappable>
       </View>
 
       {/* Dagens uppdrag */}
@@ -129,8 +131,8 @@ export default function Hem() {
       {missions.length === 0 ? (
         <Text style={styles.empty}>Inga uppdrag just nu.</Text>
       ) : (
-        missions.map((m) => (
-          <Pressable key={m.id} onPress={() => router.push('/ungdom/uppdrag')}>
+        missions.map((m, i) => (
+          <Tappable key={m.id} onPress={() => router.push('/ungdom/uppdrag')}>
             <Card style={styles.missionRow}>
               <View style={[styles.missionTile, { backgroundColor: m.tint }]}>
                 <Icon name={m.icon as any} size={22} color={ICON_TINT[m.icon] ?? colors.primary} />
@@ -141,7 +143,7 @@ export default function Hem() {
               </View>
               <Text style={styles.missionXp}>+{m.xp} XP</Text>
             </Card>
-          </Pressable>
+          </Tappable>
         ))
       )}
 
@@ -153,7 +155,7 @@ export default function Hem() {
       {activities.length === 0 ? (
         <Text style={styles.empty}>Inga aktiviteter just nu.</Text>
       ) : (
-        activities.map((a) => {
+        activities.map((a, i) => {
           const t = activityTheme(a.theme);
           const when = a.continuous
             ? 'Alltid öppen'
@@ -161,7 +163,8 @@ export default function Hem() {
               ? fmtDateTime(new Date(a.starts_at))
               : a.when_text || 'Tid ej satt';
           return (
-            <Pressable key={a.id} onPress={() => router.push('/scan')}>
+            <FadeIn key={a.id} index={i}>
+            <Tappable onPress={() => router.push('/scan')}>
               <Card style={styles.actRow}>
                 <View style={[styles.actTile, { backgroundColor: t.bg[0] }]}>
                   <Icon name={t.icon as any} size={20} color={t.accent} />
@@ -172,7 +175,8 @@ export default function Hem() {
                 </View>
                 <Text style={styles.actPts}>+{a.points}</Text>
               </Card>
-            </Pressable>
+            </Tappable>
+            </FadeIn>
           );
         })
       )}
