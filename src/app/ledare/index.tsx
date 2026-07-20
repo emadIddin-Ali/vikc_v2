@@ -1,6 +1,8 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Icon } from '@/components/Icon';
 import { Aktiviteter } from '@/features/ledare/Aktiviteter';
 import { Beloningar } from '@/features/ledare/Beloningar';
 import { Narvaro } from '@/features/ledare/Narvaro';
@@ -20,11 +22,17 @@ const TABS: { key: LedareTab; label: string }[] = [
 
 export default function LedareHome() {
   const insets = useSafeAreaInsets();
-  const { activeMembership, profile, session } = useAuth();
-  const fid = activeMembership?.forening_id ?? null;
-  const forening = activeMembership?.forening?.name ?? '';
+  const router = useRouter();
+  const { activeForening, activeForeningId, actAsForening, exitForeningAsLeader, profile, session } = useAuth();
+  const fid = activeForeningId;
+  const forening = activeForening?.name ?? '';
   const name = (profile?.display_name?.trim() || session?.user?.email?.split('@')[0] || 'ledare').split(' ')[0];
   const [tab, setTab] = useState<LedareTab>('oversikt');
+
+  const backToKommun = () => {
+    exitForeningAsLeader();
+    router.replace('/kommun');
+  };
 
   return (
     <View style={[styles.root, { paddingTop: insets.top + 6 }]}>
@@ -33,9 +41,16 @@ export default function LedareHome() {
           <Text style={styles.kicker} numberOfLines={1}>Ledarvy · {forening}</Text>
           <Text style={styles.hej}>Hej {name}</Text>
         </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
-        </View>
+        {actAsForening ? (
+          <Pressable style={styles.kommunBtn} onPress={backToKommun} hitSlop={8}>
+            <Icon name="arrowL" size={16} color={colors.white} />
+            <Text style={styles.kommunBtnText}>Kommun</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
       </View>
 
       <ScrollView
@@ -77,6 +92,8 @@ const styles = StyleSheet.create({
   hej: { fontFamily: font.bold, fontSize: 19, color: colors.ink },
   avatar: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: font.bold, fontSize: 15, color: colors.white },
+  kommunBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.ink, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12 },
+  kommunBtnText: { fontFamily: font.semibold, fontSize: 12.5, color: colors.white },
 
   tabsScroll: { flexGrow: 0, marginTop: 8 },
   tabs: { gap: 7, paddingHorizontal: 18, paddingVertical: 4 },

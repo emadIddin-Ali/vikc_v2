@@ -76,6 +76,17 @@ export type Checkin = {
   created_at: string;
 };
 
+/** Compact activity shown on the youth home ("Kommande aktiviteter"). */
+export type HomeActivity = {
+  id: string;
+  title: string;
+  when_text: string | null;
+  points: number;
+  starts_at: string | null;
+  continuous: boolean;
+  theme: string;
+};
+
 /** Result returned by the check_in() RPC. */
 export type CheckinResult = {
   awarded_points: number;
@@ -114,6 +125,7 @@ export type Activity = {
   requires_photo: boolean;
   duration_min: number | null;
   daily_limit: number;
+  radius_m: number | null;
 };
 
 /** Open activity a youth can still check into right now (from youth_open_activities). */
@@ -159,6 +171,13 @@ export type Reward = {
   icon: string;
   tint: string;
   cost: number;
+};
+
+/** One förening in the kommun overview (förening fields + aggregated stats). */
+export type KommunForening = Forening & {
+  youth: number;
+  activities: number;
+  checkins_today: number;
 };
 
 /** One row of the leaderboard() RPC. user_id is null for demo competitors. */

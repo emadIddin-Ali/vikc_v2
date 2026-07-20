@@ -3,9 +3,10 @@ import type { Session } from '@supabase/supabase-js';
 import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
+import { registerPushToken } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import type {
-  MembershipWithForening, Profile, ViewRole,
+  Forening, MembershipWithForening, Profile, ViewRole,
 } from '@/lib/types';
 
 const ACTIVE_KEY = 'levla.activeForeningId';
@@ -19,6 +20,8 @@ type AuthState = {
   kommunIds: string[];
   activeForeningId: string | null;
   activeMembership: MembershipWithForening | null;
+  activeForening: Forening | null;
+  actAsForening: Forening | null;
   isKommunAdmin: boolean;
   /** Which app surface the user should see right now. null => must join a förening. */
   role: ViewRole | null;
@@ -29,6 +32,8 @@ type AuthState = {
   joinForeningByCode: (code: string) => Promise<{ error?: string }>;
   setActiveForeningId: (id: string) => void;
   refresh: () => Promise<void>;
+  openForeningAsLeader: (f: Forening) => void;
+  exitForeningAsLeader: () => void;
 };
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -41,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [memberships, setMemberships] = useState<MembershipWithForening[]>([]);
   const [kommunIds, setKommunIds] = useState<string[]>([]);
   const [activeForeningId, setActiveForeningIdState] = useState<string | null>(null);
+  const [actAsForening, setActAsForening] = useState<Forening | null>(null);
 
   // Load the persisted active-förening choice once.
   useEffect(() => {
@@ -101,6 +107,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [loadUserData]);
 
+  // Register this device for push once a user is signed in (no-op in Expo Go).
+  useEffect(() => {
+    const uid = session?.user?.id;
+    if (uid) registerPushToken(uid);
+  }, [session?.user?.id]);
+
   // Keep a valid active förening once memberships are known.
   useEffect(() => {
     if (memberships.length === 0) return;
@@ -138,6 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    setActAsForening(null);
     await supabase.auth.signOut();
   }, []);
 
@@ -155,11 +168,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isKommunAdmin = kommunIds.length > 0;
 
+  const activeForening = useMemo(
+    () => actAsForening ?? activeMembership?.forening ?? null,
+    [actAsForening, activeMembership],
+  );
+
   const role: ViewRole | null = useMemo(() => {
+    if (actAsForening) return 'ledare';
     if (activeMembership) return activeMembership.role;
     if (isKommunAdmin) return 'kommun';
     return null;
-  }, [activeMembership, isKommunAdmin]);
+  }, [actAsForening, activeMembership, isKommunAdmin]);
+
+  const openForeningAsLeader = useCallback((f: Forening) => setActAsForening(f), []);
+  const exitForeningAsLeader = useCallback(() => setActAsForening(null), []);
 
   const value: AuthState = {
     loading,
@@ -168,8 +190,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile,
     memberships,
     kommunIds,
-    activeForeningId: activeMembership?.forening_id ?? null,
+    activeForeningId: activeForening?.id ?? null,
     activeMembership,
+    activeForening,
+    actAsForening,
     isKommunAdmin,
     role,
     signIn,
@@ -178,6 +202,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     joinForeningByCode,
     setActiveForeningId,
     refresh,
+    openForeningAsLeader,
+    exitForeningAsLeader,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

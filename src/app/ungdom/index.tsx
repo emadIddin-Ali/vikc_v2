@@ -1,14 +1,17 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
+import { Floaty } from '@/components/Floaty';
 import { Mascot } from '@/components/Mascot';
 import { Screen } from '@/components/Screen';
 import { useHomeData } from '@/hooks/useHomeData';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { fmtDateTime } from '@/lib/date';
 import {
-  ICON_TINT, XP_MAX, colors, font, gradients, greetingForNow, levelName, radius, shadow,
+  ICON_TINT, XP_MAX, activityTheme, colors, font, gradients, greetingForNow, levelName, radius, shadow,
   fmt, relativeDate,
 } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
@@ -35,7 +38,19 @@ export default function Hem() {
 
   const missions = data?.missions ?? [];
   const recent = data?.recent ?? [];
+  const activities = data?.activities ?? [];
   const unread = data?.unreadCount ?? 0;
+
+  const reduced = useReducedMotion();
+  const xpAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (reduced) {
+      xpAnim.setValue(xpPct);
+      return;
+    }
+    Animated.timing(xpAnim, { toValue: xpPct, duration: 700, useNativeDriver: false }).start();
+  }, [xpPct, reduced, xpAnim]);
+  const xpWidth = xpAnim.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] });
 
   return (
     <Screen>
@@ -72,12 +87,14 @@ export default function Hem() {
         style={styles.levelCard}
       >
         <View style={styles.mascot} pointerEvents="none">
-          <Mascot size={86} />
+          <Floaty>
+            <Mascot size={86} />
+          </Floaty>
         </View>
         <Text style={styles.levelKicker}>NIVÅ {level} · {levelName(level)}</Text>
         <Text style={styles.pep}>Nice svit — fortsätt så!</Text>
         <View style={styles.xpTrack}>
-          <View style={[styles.xpFill, { width: `${xpPct}%` }]} />
+          <Animated.View style={[styles.xpFill, { width: xpWidth }]} />
         </View>
         <Text style={styles.xpLeft}>{xpLeft} XP till nivå {level + 1}</Text>
       </LinearGradient>
@@ -126,6 +143,38 @@ export default function Hem() {
             </Card>
           </Pressable>
         ))
+      )}
+
+      {/* Kommande aktiviteter */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Kommande aktiviteter</Text>
+        <Text style={styles.sectionHint}>Checka in för poäng</Text>
+      </View>
+      {activities.length === 0 ? (
+        <Text style={styles.empty}>Inga aktiviteter just nu.</Text>
+      ) : (
+        activities.map((a) => {
+          const t = activityTheme(a.theme);
+          const when = a.continuous
+            ? 'Alltid öppen'
+            : a.starts_at
+              ? fmtDateTime(new Date(a.starts_at))
+              : a.when_text || 'Tid ej satt';
+          return (
+            <Pressable key={a.id} onPress={() => router.push('/scan')}>
+              <Card style={styles.actRow}>
+                <View style={[styles.actTile, { backgroundColor: t.bg[0] }]}>
+                  <Icon name={t.icon as any} size={20} color={t.accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.actTitle}>{a.title}</Text>
+                  <Text style={styles.actWhen}>{when}</Text>
+                </View>
+                <Text style={styles.actPts}>+{a.points}</Text>
+              </Card>
+            </Pressable>
+          );
+        })
       )}
 
       {/* Senaste besök */}
@@ -208,6 +257,12 @@ const styles = StyleSheet.create({
   missionTitle: { fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
   missionDesc: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted2 },
   missionXp: { fontFamily: font.bold, fontSize: 12, color: colors.green },
+  sectionHint: { fontFamily: font.regular, fontSize: 11, color: colors.muted2 },
+  actRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 11, paddingVertical: 12, paddingHorizontal: 14 },
+  actTile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  actTitle: { fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
+  actWhen: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted2 },
+  actPts: { fontFamily: font.bold, fontSize: 13, color: colors.primary },
 
   visitRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 11, paddingHorizontal: 2 },
   visitTile: { width: 36, height: 36, borderRadius: 11, backgroundColor: colors.tintPurple2, alignItems: 'center', justifyContent: 'center' },

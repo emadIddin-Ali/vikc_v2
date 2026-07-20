@@ -1,14 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type {
-  Checkin, Membership, MissionWithProgress, NotificationRow,
-} from '@/lib/types';
+import type { Checkin, HomeActivity, Membership, MissionWithProgress } from '@/lib/types';
 
 export type HomeData = {
   membership: Membership | null;
   unreadCount: number;
   missions: MissionWithProgress[];
   recent: Checkin[];
+  activities: HomeActivity[];
 };
 
 /**
@@ -23,7 +22,7 @@ export function useHomeData(foreningId: string | null, userId: string | undefine
     queryFn: async () => {
       const fid = foreningId as string;
 
-      const [membershipRes, unreadRes, missionsRes, recentRes] = await Promise.all([
+      const [membershipRes, unreadRes, missionsRes, recentRes, activitiesRes] = await Promise.all([
         supabase
           .from('membership')
           .select('*')
@@ -48,13 +47,28 @@ export function useHomeData(foreningId: string | null, userId: string | undefine
           .eq('forening_id', fid)
           .order('created_at', { ascending: false })
           .limit(3),
+        supabase
+          .from('activity')
+          .select('id, title, when_text, points, starts_at, continuous, theme')
+          .eq('forening_id', fid)
+          .eq('active', true)
+          .order('starts_at', { ascending: true, nullsFirst: false })
+          .limit(8),
       ]);
+
+      // Upcoming = continuous, undated, or starting today or later.
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      const activities = ((activitiesRes.data as HomeActivity[]) ?? [])
+        .filter((a) => a.continuous || !a.starts_at || new Date(a.starts_at).getTime() >= startOfToday.getTime())
+        .slice(0, 3);
 
       return {
         membership: (membershipRes.data as Membership) ?? null,
         unreadCount: unreadRes.count ?? 0,
         missions: (missionsRes.data as MissionWithProgress[]) ?? [],
         recent: (recentRes.data as Checkin[]) ?? [],
+        activities,
       };
     },
   });

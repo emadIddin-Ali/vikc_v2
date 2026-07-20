@@ -5,14 +5,19 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View,
+  ActivityIndicator, Alert, Animated, Pressable, ScrollView, StyleSheet, Switch, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Confetti } from '@/components/Confetti';
+import { Floaty } from '@/components/Floaty';
 import { Icon } from '@/components/Icon';
 import { Mascot } from '@/components/Mascot';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { haptics } from '@/lib/haptics';
 import { useCheckin, useOpenCheckin, useYouthOpenActivities } from '@/hooks/useCheckin';
 import { capturePhoto, uploadCheckinPhoto } from '@/lib/photo';
 import { supabase } from '@/lib/supabase';
+import { toast } from '@/store/toast';
 import type { Activity, CheckinResult, YouthOpenActivity } from '@/lib/types';
 import { colors, font, gradients, levelName } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
@@ -53,6 +58,8 @@ export default function Scan() {
   const [permission, requestPermission] = useCameraPermissions();
   const [busyId, setBusyId] = useState<string | null>(null);
   const handledRef = useRef(false);
+  const reduced = useReducedMotion();
+  const ping = useRef(new Animated.Value(0)).current;
 
   const { data: activities } = useQuery<Activity[]>({
     queryKey: ['scan-activities', foreningId],
@@ -104,14 +111,35 @@ export default function Scan() {
     };
   }, [simulateOnSite, venueLat, venueLng, radiusM]);
 
+  useEffect(() => {
+    if (mode === 'success') haptics.success();
+    else if (mode === 'levelup') haptics.medium();
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode !== 'success' || reduced) return;
+    ping.setValue(0);
+    const anim = Animated.loop(Animated.timing(ping, { toValue: 1, duration: 1200, useNativeDriver: true }));
+    anim.start();
+    return () => anim.stop();
+  }, [mode, reduced, ping]);
+
   const inRange = geo === 'inrange';
   const busy = checkin.isPending || openCheckin.isPending || busyId !== null;
 
   const runScan = useCallback(
     (token: string | undefined) => {
-      if (!token) return Alert.alert('Ingen QR', 'Kunde inte läsa QR-koden. Prova igen.');
       if (busy || handledRef.current) return;
-      if (!inRange) return Alert.alert('Inte på plats', 'Du måste vara på gården för att checka in.');
+      if (!token) return;
+      if (!inRange) {
+        // Camera recognised the code but we're not on-site — say so (debounced).
+        handledRef.current = true;
+        toast('Du måste vara på plats. Slå på "Simulera att jag är på plats" för test.');
+        setTimeout(() => {
+          handledRef.current = false;
+        }, 2500);
+        return;
+      }
       handledRef.current = true;
       const coords = simulateOnSite ? { lat: venueLat, lng: venueLng } : deviceCoords;
       checkin.mutate(
@@ -173,7 +201,15 @@ export default function Scan() {
     return (
       <LinearGradient colors={gradients.success} style={styles.celebrate}>
         <View style={styles.pingWrap}>
-          <View style={styles.pingCircle} />
+          <Animated.View
+            style={[
+              styles.pingCircle,
+              {
+                transform: [{ scale: ping.interpolate({ inputRange: [0, 1], outputRange: [0.6, 2.4] }) }],
+                opacity: ping.interpolate({ inputRange: [0, 1], outputRange: [0.7, 0] }),
+              },
+            ]}
+          />
           <View style={styles.mascotCircle}>
             <Mascot size={60} mouth="grin" />
           </View>
@@ -200,10 +236,11 @@ export default function Scan() {
   if (mode === 'levelup' && result) {
     return (
       <LinearGradient colors={gradients.levelUp} style={styles.celebrate}>
+        <Confetti />
         <Text style={styles.levelKicker}>LEVEL UP</Text>
-        <View style={{ marginVertical: 14 }}>
+        <Floaty style={{ marginVertical: 14 }}>
           <Mascot size={130} eyes mouth="grin" />
-        </View>
+        </Floaty>
         <Text style={styles.levelBig}>Nivå {result.level}!</Text>
         <Text style={styles.levelName}>{levelName(result.level)}</Text>
         <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.gold }]} onPress={finish}>
@@ -248,7 +285,7 @@ export default function Scan() {
                 style={StyleSheet.absoluteFill}
                 facing="back"
                 barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                onBarcodeScanned={inRange && !busy && !handledRef.current ? (r) => runScan(r.data) : undefined}
+                onBarcodeScanned={busy ? undefined : (r) => runScan(r.data)}
               />
             ) : (
               <View style={styles.camPlaceholder}>
@@ -335,7 +372,7 @@ const styles = StyleSheet.create({
   geoSub: { fontFamily: font.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.7)' },
 
   viewfinderWrap: { alignItems: 'center', justifyContent: 'center', marginTop: 18 },
-  viewfinder: { width: 190, height: 190, borderRadius: 24, overflow: 'hidden', backgroundColor: '#221a3a' },
+  viewfinder: { width: 240, height: 240, borderRadius: 24, overflow: 'hidden', backgroundColor: '#221a3a' },
   camPlaceholder: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   corner: { position: 'absolute', width: 28, height: 28, borderColor: colors.gold },
   tl: { left: 8, top: 8, borderLeftWidth: 4, borderTopWidth: 4, borderTopLeftRadius: 8 },

@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Icon, IconName } from '@/components/Icon';
 import { TextField } from '@/components/ui/TextField';
+import { EditMission } from '@/features/ledare/EditMission';
+import type { Mission } from '@/lib/types';
 import { useCreateMission, useLedareMissions } from '@/hooks/useLedare';
 import { ICON_TINT, colors, font, gradients } from '@/theme/tokens';
 import { toast } from '@/store/toast';
@@ -26,6 +28,7 @@ export function Uppdrag({ fid }: { fid: string }) {
   const [xp, setXp] = useState('');
   const [icon, setIcon] = useState<IconName>('target');
   const [autoVisit, setAutoVisit] = useState(true);
+  const [editMission, setEditMission] = useState<Mission | null>(null);
 
   const onCreate = () => {
     if (!title.trim()) {
@@ -89,17 +92,21 @@ export function Uppdrag({ fid }: { fid: string }) {
 
       <Text style={styles.section}>Uppdrag i föreningen</Text>
       {(missions ?? []).map((m) => (
-        <Card key={m.id} style={styles.missionRow}>
-          <View style={[styles.tile, { backgroundColor: m.tint }]}>
-            <Icon name={m.icon as IconName} size={22} color={ICON_TINT[m.icon] ?? colors.primary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.mTitle}>{m.title}</Text>
-            <Text style={styles.mSub}>Mål {m.goal} · +{m.xp} XP{m.auto_visit ? ' · auto' : ''}</Text>
-          </View>
-        </Card>
+        <Pressable key={m.id} onPress={() => setEditMission(m)}>
+          <Card style={styles.missionRow}>
+            <View style={[styles.tile, { backgroundColor: m.tint }]}>
+              <Icon name={m.icon as IconName} size={22} color={ICON_TINT[m.icon] ?? colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.mTitle}>{m.title}</Text>
+              <Text style={styles.mSub}>Mål {m.goal} · +{m.xp} XP{m.auto_visit ? ' · auto' : ''} · tryck för att ändra</Text>
+            </View>
+          </Card>
+        </Pressable>
       ))}
       {(missions ?? []).length === 0 && <Text style={styles.empty}>Inga uppdrag än.</Text>}
+
+      {editMission && <EditMission mission={editMission} onClose={() => setEditMission(null)} />}
     </View>
   );
 }

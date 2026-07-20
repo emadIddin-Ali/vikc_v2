@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { haptics } from '@/lib/haptics';
 import { colors, font } from '@/theme/tokens';
 import { useToastStore } from '@/store/toast';
 
@@ -9,20 +11,31 @@ export function Toast() {
   const message = useToastStore((s) => s.message);
   const hide = useToastStore((s) => s.hide);
   const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
+  const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!message) return;
+    haptics.light();
+    if (reduced) {
+      anim.setValue(1);
+    } else {
+      anim.setValue(0);
+      Animated.timing(anim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+    }
     const t = setTimeout(hide, 2200);
     return () => clearTimeout(t);
-  }, [message, hide]);
+  }, [message, hide, reduced, anim]);
 
   if (!message) return null;
 
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] });
+
   return (
     <View pointerEvents="none" style={[styles.wrap, { top: insets.top + 10 }]}>
-      <View style={styles.pill}>
+      <Animated.View style={[styles.pill, { opacity: anim, transform: [{ translateY }] }]}>
         <Text style={styles.text}>{message}</Text>
-      </View>
+      </Animated.View>
     </View>
   );
 }

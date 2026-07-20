@@ -47,6 +47,7 @@ export type PublishVars = {
   requiresPhoto: boolean;
   durationMin: number | null;
   dailyLimit: number;
+  radiusM: number | null;
 };
 
 export function usePublishActivity() {
@@ -68,6 +69,7 @@ export function usePublishActivity() {
         p_requires_photo: v.requiresPhoto,
         p_duration_min: v.durationMin,
         p_daily_limit: v.dailyLimit,
+        p_radius_m: v.radiusM,
       });
       if (error) throw new Error(error.message);
       return data as Activity;
@@ -218,6 +220,94 @@ export function useCreateMission() {
     },
     onSuccess: () => {
       toast('Uppdrag skapat');
+      qc.invalidateQueries({ queryKey: ['ledare-missions'] });
+      qc.invalidateQueries({ queryKey: ['missions'] });
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
+export function useSetForeningLocation() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { forening: string; lat: number; lng: number; radius: number | null }>({
+    mutationFn: async (v) => {
+      const { error } = await supabase.rpc('set_forening_location', {
+        p_forening: v.forening,
+        p_lat: v.lat,
+        p_lng: v.lng,
+        p_radius: v.radius,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast('Föreningens plats sparad');
+      qc.invalidateQueries({ queryKey: ['open-activities'] });
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
+export function useUpdateActivity() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; patch: Record<string, unknown> }>({
+    mutationFn: async ({ id, patch }) => {
+      const { error } = await supabase.from('activity').update(patch).eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast('Aktivitet uppdaterad');
+      qc.invalidateQueries({ queryKey: ['ledare-activities'] });
+      qc.invalidateQueries({ queryKey: ['home'] });
+      qc.invalidateQueries({ queryKey: ['open-activities'] });
+      qc.invalidateQueries({ queryKey: ['scan-activities'] });
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
+export function useDeleteActivity() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from('activity').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast('Aktivitet borttagen');
+      qc.invalidateQueries({ queryKey: ['ledare-activities'] });
+      qc.invalidateQueries({ queryKey: ['home'] });
+      qc.invalidateQueries({ queryKey: ['open-activities'] });
+      qc.invalidateQueries({ queryKey: ['scan-activities'] });
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
+export function useUpdateMission() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; patch: Record<string, unknown> }>({
+    mutationFn: async ({ id, patch }) => {
+      const { error } = await supabase.from('mission').update(patch).eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast('Uppdrag uppdaterat');
+      qc.invalidateQueries({ queryKey: ['ledare-missions'] });
+      qc.invalidateQueries({ queryKey: ['missions'] });
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
+export function useDeleteMission() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      const { error } = await supabase.from('mission').delete().eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast('Uppdrag borttaget');
       qc.invalidateQueries({ queryKey: ['ledare-missions'] });
       qc.invalidateQueries({ queryKey: ['missions'] });
     },

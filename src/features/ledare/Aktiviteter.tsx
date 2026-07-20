@@ -8,10 +8,11 @@ import { DateTimeField } from '@/components/DateTimeField';
 import { Icon, IconName } from '@/components/Icon';
 import { MapPicker, MapPickerHandle } from '@/components/MapPicker';
 import { TextField } from '@/components/ui/TextField';
+import { EditActivity } from '@/features/ledare/EditActivity';
 import { dateKey, dayHeading, fmtDateTime, fmtTime } from '@/lib/date';
 import type { Activity } from '@/lib/types';
 import { toast } from '@/store/toast';
-import { useLedareActivities, usePublishActivity } from '@/hooks/useLedare';
+import { useLedareActivities, usePublishActivity, useSetForeningLocation } from '@/hooks/useLedare';
 import { THEMES, activityTheme, colors, font, gradients } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -44,10 +45,11 @@ function Badge({ text, ink }: { text: string; ink: string }) {
 }
 
 export function Aktiviteter({ fid }: { fid: string }) {
-  const { activeMembership } = useAuth();
-  const forening = activeMembership?.forening;
+  const { activeForening, refresh } = useAuth();
+  const forening = activeForening;
   const { data: activities } = useLedareActivities(fid);
   const publish = usePublishActivity();
+  const setLoc = useSetForeningLocation();
   const mapRef = useRef<MapPickerHandle>(null);
 
   const [title, setTitle] = useState('');
@@ -61,7 +63,11 @@ export function Aktiviteter({ fid }: { fid: string }) {
   const [locating, setLocating] = useState(false);
   const [durationMin, setDurationMin] = useState('');
   const [dailyLimit, setDailyLimit] = useState('');
+  const [activityRadius, setActivityRadius] = useState('');
+  const [venueRadius, setVenueRadius] = useState('');
+  const [settingLoc, setSettingLoc] = useState(false);
   const [qrActivity, setQrActivity] = useState<Activity | null>(null);
+  const [editActivity, setEditActivity] = useState<Activity | null>(null);
 
   const mapCenter = useMemo(
     () =>
@@ -88,6 +94,25 @@ export function Aktiviteter({ fid }: { fid: string }) {
     }
   };
 
+  const setForeningToMyLocation = async () => {
+    if (!forening) return;
+    setSettingLoc(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Plats nekad', 'Tillåt plats för att sätta föreningens plats.');
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({});
+      setLoc.mutate(
+        { forening: fid, lat: pos.coords.latitude, lng: pos.coords.longitude, radius: parseInt(venueRadius) || null },
+        { onSuccess: () => { setVenueRadius(''); refresh(); } },
+      );
+    } finally {
+      setSettingLoc(false);
+    }
+  };
+
   const onPublish = () => {
     if (!title.trim()) return toast('Skriv ett namn');
     if (kind === 'event' && !startsAt) return toast('Välj en tid');
@@ -110,6 +135,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
         requiresPhoto: mode === 'open' ? requiresPhoto : false,
         durationMin: kind === 'event' && durationMin ? parseInt(durationMin) : null,
         dailyLimit: parseInt(dailyLimit) || 1,
+        radiusM: activityRadius ? parseInt(activityRadius) : null,
       },
       {
         onSuccess: () => {
@@ -123,6 +149,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
           setCoords(null);
           setDurationMin('');
           setDailyLimit('');
+          setActivityRadius('');
         },
       },
     );
@@ -157,17 +184,19 @@ export function Aktiviteter({ fid }: { fid: string }) {
     const t = activityTheme(a.theme);
     return (
       <LinearGradient key={a.id} colors={t.bg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.actCard}>
-        <View style={styles.actIcon}>
-          <Icon name={t.icon as IconName} size={22} color={t.accent} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.actTitle, { color: t.ink }]}>{a.title}</Text>
-          <Text style={[styles.actMeta, { color: t.ink }]}>{timeLabel} · +{a.points}p</Text>
-          <View style={styles.badges}>
-            <Badge text={a.checkin_mode === 'open' ? 'Öppen' : 'QR'} ink={t.ink} />
-            {a.requires_photo && <Badge text="Foto" ink={t.ink} />}
+        <Pressable onPress={() => setEditActivity(a)} style={styles.actMain}>
+          <View style={styles.actIcon}>
+            <Icon name={t.icon as IconName} size={22} color={t.accent} />
           </View>
-        </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.actTitle, { color: t.ink }]}>{a.title}</Text>
+            <Text style={[styles.actMeta, { color: t.ink }]}>{timeLabel} · +{a.points}p · tryck för att ändra</Text>
+            <View style={styles.badges}>
+              <Badge text={a.checkin_mode === 'open' ? 'Öppen' : 'QR'} ink={t.ink} />
+              {a.requires_photo && <Badge text="Foto" ink={t.ink} />}
+            </View>
+          </View>
+        </Pressable>
         {a.checkin_mode === 'qr' && (
           <Pressable onPress={() => setQrActivity(a)} style={styles.qrBtn}>
             <Icon name="camera" size={14} color={t.ink} />
@@ -180,6 +209,34 @@ export function Aktiviteter({ fid }: { fid: string }) {
 
   return (
     <View>
+      <View style={styles.info}>
+        <Text style={styles.infoTitle}>Aktivitet vs uppdrag</Text>
+        <Text style={styles.infoText}>
+          En <Text style={styles.b}>aktivitet</Text> är ett tillfälle ungdomarna checkar in på (QR eller plats) för poäng — t.ex. "Kvällsfik" eller "Besök moskén". För återkommande <Text style={styles.b}>utmaningar</Text> (t.ex. "Besök 5 gånger") använder du fliken Uppdrag.
+        </Text>
+      </View>
+
+      <Card style={styles.locCard}>
+        <View style={styles.locHead}>
+          <Text style={styles.formTitle}>Föreningens plats</Text>
+          <Text style={[styles.status, { color: forening?.lat != null ? colors.green : colors.pink }]}>
+            {forening?.lat != null ? `Satt · ${forening.geofence_radius_m} m` : 'Ej satt'}
+          </Text>
+        </View>
+        <Text style={styles.locHint}>Används för geo-incheckning. Stå på plats och tryck nedan.</Text>
+        <TextField
+          placeholder={`Radie i meter (nu ${forening?.geofence_radius_m ?? 120})`}
+          value={venueRadius}
+          onChangeText={setVenueRadius}
+          keyboardType="number-pad"
+          style={{ marginTop: 10 }}
+        />
+        <Pressable onPress={setForeningToMyLocation} style={styles.locBtn}>
+          <Icon name="locate" size={18} color={colors.primary} />
+          <Text style={styles.locText}>{settingLoc ? 'Sparar…' : 'Använd min plats som föreningens plats'}</Text>
+        </Pressable>
+      </Card>
+
       <Card style={styles.form}>
         <Text style={styles.formTitle}>Ny aktivitet</Text>
         <TextField placeholder="Namn, t.ex. Fotbollskväll" value={title} onChangeText={setTitle} style={styles.input} />
@@ -221,8 +278,8 @@ export function Aktiviteter({ fid }: { fid: string }) {
         />
 
         <View style={styles.labelRow}>
-          <Text style={styles.label}>Incheckningsplats</Text>
-          <Text style={[styles.status, { color: coords ? colors.green : colors.muted2 }]}>{coords ? 'Plats satt ✓' : mode === 'open' ? 'Krävs' : 'Tryck på kartan'}</Text>
+          <Text style={styles.label}>Incheckningsplats (valfri)</Text>
+          <Text style={[styles.status, { color: coords ? colors.green : colors.muted2 }]}>{coords ? 'Plats satt ✓' : mode === 'open' ? 'Krävs' : 'Annars föreningens'}</Text>
         </View>
         <View style={{ marginTop: 8 }}>
           <MapPicker ref={mapRef} center={mapCenter} value={coords} onChange={setCoords} />
@@ -231,6 +288,13 @@ export function Aktiviteter({ fid }: { fid: string }) {
           <Icon name="locate" size={18} color={colors.primary} />
           <Text style={styles.locText}>{locating ? 'Hämtar plats…' : 'Använd min plats'}</Text>
         </Pressable>
+        <TextField
+          placeholder={`Radie i meter (annars föreningens ${forening?.geofence_radius_m ?? 120})`}
+          value={activityRadius}
+          onChangeText={setActivityRadius}
+          keyboardType="number-pad"
+          style={{ marginTop: 10 }}
+        />
 
         <View style={styles.labelRow}>
           <Text style={styles.label}>Bakgrundsmall</Text>
@@ -296,12 +360,22 @@ export function Aktiviteter({ fid }: { fid: string }) {
       {qrActivity && (
         <ActivityQR token={qrActivity.qr_token} title={qrActivity.title} onClose={() => setQrActivity(null)} />
       )}
+      {editActivity && (
+        <EditActivity activity={editActivity} onClose={() => setEditActivity(null)} />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   form: { padding: 15 },
+  info: { backgroundColor: '#ece9ff', borderRadius: 16, padding: 14, marginBottom: 12 },
+  infoTitle: { fontFamily: font.semibold, fontSize: 13, color: colors.ink },
+  infoText: { fontFamily: font.regular, fontSize: 12, color: '#5b4b86', lineHeight: 17, marginTop: 3 },
+  b: { fontFamily: font.semibold },
+  locCard: { padding: 15, marginBottom: 12 },
+  locHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  locHint: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted2, marginTop: 4 },
   formTitle: { fontFamily: font.semibold, fontSize: 14, color: colors.ink },
   input: { marginTop: 10 },
 
@@ -345,6 +419,7 @@ const styles = StyleSheet.create({
 
   section: { fontFamily: font.semibold, fontSize: 14, color: colors.ink, marginTop: 18, marginBottom: 2 },
   actCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, marginTop: 9 },
+  actMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   actIcon: { width: 44, height: 44, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.65)', alignItems: 'center', justifyContent: 'center' },
   actTitle: { fontFamily: font.bold, fontSize: 13.5 },
   actMeta: { fontFamily: font.regular, fontSize: 11.5, opacity: 0.85, marginTop: 1 },

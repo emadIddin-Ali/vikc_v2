@@ -15,6 +15,8 @@ Designreferens finns i `design_handoff_levla_app/` (HTML-prototyp + handoff-READ
 - **QR-incheckning:** `expo-camera` (QR-avläsning) + `expo-location` (geofence), server-validerad via RPC
 - **Ledarkarta:** `react-native-webview` + Leaflet/OpenStreetMap för att peka ut incheckningsplats (ingen native kartmodul)
 - **Kalender/foto/QR:** `@react-native-community/datetimepicker` (tider), `expo-image-picker` + Supabase Storage (fotobevis), `react-native-qrcode-svg` (visa QR)
+- **Push (redo, kräver dev build):** `expo-notifications` + `push_token`-tabell + `pg_net`-trigger → Expo push API vid ny notis
+- **Polish:** RN `Animated` (konfetti, floaty maskot, ping, XP-bar, toast-slide) + `expo-haptics`, respekterar *reduce motion*
 
 ## Multi-tenancy (viktigt)
 Varje **förening** är en egen tenant. Alla domänrader bär `forening_id` och isoleras med
@@ -41,7 +43,11 @@ Skapa ett projekt på [supabase.com](https://supabase.com). Kör sedan SQL:en i 
 7. `supabase/migrations/0007_ledare_improvements.sql` — närvaro per aktivitet + dashboard-detaljer
 8. `supabase/migrations/0008_activity_v2.sql` — schemalagd tid, öppna/kontinuerliga aktiviteter, fotobevis (Storage)
 9. `supabase/migrations/0009_windows_limits.sql` — incheckningsfönster, daily-limit, geo-precision, auto-uppdrag
-10. `supabase/seed.sql` — demodata (1 kommun, 3 föreningar, aktiviteter/belöningar/uppdrag)
+10. `supabase/migrations/0010_forening_location.sql` — sätt föreningens plats (geofence)
+11. `supabase/migrations/0011_activity_radius.sql` — radie per aktivitet (egen incheckningsplats)
+12. `supabase/migrations/0012_push.sql` — push-tokens + pg_net-trigger som postar till Expo push
+13. `supabase/migrations/0013_kommun.sql` — kommunöversikt (aggregerad statistik) + skapa förening
+14. `supabase/seed.sql` — demodata (1 kommun, 3 föreningar, aktiviteter/belöningar/uppdrag)
 
 > Med Supabase CLI: `supabase db push` kör migrationerna; seed körs av `supabase db reset`
 > lokalt, eller klistra in `seed.sql` i SQL Editor mot ett fjärrprojekt.
@@ -119,5 +125,18 @@ supabase/                  # migrations + seed
 - ✅ QR- & öppen incheckning med geo-lås (server-validerad: geofence + accuracy-marginal + tidsfönster + daily-limit) + poäng/nivå/streak
 - ✅ Uppdrag (lös in XP, auto-progress vid incheckning) + Butik (växla poäng) + Notiser (inkorg)
 - ✅ Topplista per förening (server-rankad, med demo-konkurrenter)
-- ✅ Ledarverktyg — översikt m. aktiv-lista, agenda/tid + incheckningsfönster, öppna/kontinuerliga aktiviteter (daily-limit), fotobevis, Visa QR, uppdragshantering, närvaro per aktivitet, belöningar
-- ⏭️ Näst: kommunöversikt → riktig push (APNs/FCM) → animationer/ljud/polish
+- ✅ Ledarverktyg — översikt m. aktiv-lista, agenda/tid + incheckningsfönster, öppna/kontinuerliga aktiviteter (daily-limit), fotobevis, Visa QR, uppdragshantering, närvaro per aktivitet, belöningar, sätt föreningens plats, **redigera & ta bort** aktiviteter/uppdrag
+- ✅ Push-pipeline byggd (expo-notifications + pg_net → Expo push) — **aktiveras med en development build** (Expo Go stödjer ej push)
+- ✅ Kommunöversikt (superadmin) — aggregerad statistik, öppna förening som ledare, skapa förening
+- ✅ Polish — animationer (konfetti, floaty maskot, ping, XP-bar, toast-slide) + haptik, respekterar *reduce motion*
+- ⏭️ Näst: ljud-SFX → fler mikrointeraktioner → tillgänglighet/tester
+
+## Development build (aktiverar push + laddar snabbare än Expo Go)
+Riktig push kräver en dev build — Expo Go (SDK 54) stödjer inte remote push. **`eas.json`, bygg-identifierare (`com.levla.app`) och `expo-dev-client` är redan uppsatta.** En dev build laddar dessutom snabbare än Expo Go (löser laddningsstrulet) och stödjer alla native-moduler. När du vill:
+1. Kör `supabase/migrations/0012_push.sql` (aktiverar `pg_net` + push-triggern).
+2. Skapa ett Expo-konto och kör `npx eas init` (länkar projektet, sätter projectId).
+3. Bygg: `npx eas build --profile development --platform android` (gratis) eller `--platform ios` (kräver Apple Developer-konto).
+4. Installera bygget, kör `npx expo start --dev-client`, logga in → push-token registreras automatiskt.
+5. Klart: en push skickas varje gång en notis skapas (t.ex. när en ledare lägger upp en aktivitet).
+
+Tills dess är pipelinen vilande och in-app-notiserna (inkorg + klock-badge) fungerar som vanligt i Expo Go.
