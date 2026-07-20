@@ -14,6 +14,7 @@ import { Icon, IconName } from '@/components/Icon';
 import { MascotCelebration } from '@/components/MascotCelebration';
 import { claimNewBadges } from '@/lib/badgeSeen';
 import { haptics } from '@/lib/haptics';
+import { playSfx } from '@/lib/sfx';
 import { useCheckin, useOpenCheckin, useYouthOpenActivities } from '@/hooks/useCheckin';
 import { capturePhoto, uploadCheckinPhoto } from '@/lib/photo';
 import { supabase } from '@/lib/supabase';
@@ -111,8 +112,16 @@ export default function Scan() {
   }, [simulateOnSite, venueLat, venueLng, radiusM]);
 
   useEffect(() => {
-    if (mode === 'success') haptics.success();
-    else if (mode === 'levelup' || mode === 'badge') haptics.medium();
+    if (mode === 'success') {
+      haptics.success();
+      playSfx('checkin');
+    } else if (mode === 'levelup') {
+      haptics.medium();
+      playSfx('levelup');
+    } else if (mode === 'badge') {
+      haptics.medium();
+      playSfx('badge');
+    }
   }, [mode]);
 
   const inRange = geo === 'inrange';
@@ -205,6 +214,12 @@ export default function Scan() {
     [newBadges.length, finish],
   );
 
+  /** Advance a celebration screen with a click. */
+  const step = useCallback((next: () => void) => () => {
+    playSfx('tap');
+    next();
+  }, []);
+
   if (mode === 'success' && result) {
     return (
       <LinearGradient colors={gradients.success} style={styles.celebrate}>
@@ -221,7 +236,7 @@ export default function Scan() {
             <Text style={styles.chipLabel}>poäng</Text>
           </View>
         </View>
-        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.white }]} onPress={() => (result.leveled_up ? setMode('levelup') : afterLevel())}>
+        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.white }]} onPress={step(() => (result.leveled_up ? setMode('levelup') : afterLevel()))}>
           <Text style={[styles.celebrateBtnText, { color: colors.green2 }]}>Fortsätt</Text>
         </Pressable>
       </LinearGradient>
@@ -243,7 +258,7 @@ export default function Scan() {
         />
         <Text style={styles.levelBig}>Nivå {result.level}!</Text>
         <Text style={styles.levelName}>{levelName(result.level)}</Text>
-        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.gold }]} onPress={afterLevel}>
+        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.gold }]} onPress={step(afterLevel)}>
           <Text style={[styles.celebrateBtnText, { color: colors.ink }]}>Nice!</Text>
         </Pressable>
       </LinearGradient>
@@ -278,7 +293,7 @@ export default function Scan() {
         ))}
         {rest > 0 && <Text style={[styles.badgeWinDesc, { marginTop: 8 }]}>+ {rest} till</Text>}
 
-        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.ink }]} onPress={finish}>
+        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.ink }]} onPress={step(finish)}>
           <Text style={[styles.celebrateBtnText, { color: colors.white }]}>Snyggt!</Text>
         </Pressable>
       </LinearGradient>

@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { announceNewBadges } from '@/lib/badgeSeen';
+import { playSfx } from '@/lib/sfx';
 import { supabase } from '@/lib/supabase';
 import type { Reward } from '@/lib/types';
+import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/store/toast';
 
 export type ShopData = {
@@ -32,6 +35,9 @@ export function useShop(foreningId: string | null, userId: string | undefined) {
 
 export function useRedeemReward() {
   const qc = useQueryClient();
+  const { session, activeMembership } = useAuth();
+  const userId = session?.user.id;
+  const foreningId = activeMembership?.forening_id;
   return useMutation<{ title: string }, Error, string>({
     mutationFn: async (rewardId) => {
       const { data, error } = await supabase.rpc('redeem_reward', { p_reward_id: rewardId });
@@ -40,8 +46,11 @@ export function useRedeemReward() {
     },
     onSuccess: (data) => {
       toast(`${data.title} uttagen!`);
+      playSfx('coin');
       qc.invalidateQueries({ queryKey: ['shop'] });
       qc.invalidateQueries({ queryKey: ['home'] });
+      qc.invalidateQueries({ queryKey: ['profile'] });
+      if (userId && foreningId) announceNewBadges(userId, foreningId);
     },
     onError: (e) => toast(e.message),
   });

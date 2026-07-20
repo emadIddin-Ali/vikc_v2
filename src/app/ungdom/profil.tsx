@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { BadgeCell } from '@/components/Badge';
 import { Card } from '@/components/Card';
 import { Icon, IconName } from '@/components/Icon';
@@ -9,6 +9,7 @@ import { Mascot } from '@/components/Mascot';
 import { Screen } from '@/components/Screen';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { highlightBadges, useProfileData } from '@/hooks/useProfile';
+import { playSfx, useSfxStore } from '@/lib/sfx';
 import { colors, fmt, font, gradients, levelName, radius, shadow } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -18,6 +19,8 @@ export default function Profil() {
 
   const foreningId = activeMembership?.forening_id ?? null;
   const { data } = useProfileData(foreningId, session?.user.id);
+  const sfxEnabled = useSfxStore((s) => s.enabled);
+  const setSfxEnabled = useSfxStore((s) => s.setEnabled);
 
   const name = profile?.display_name?.trim() || session?.user?.email?.split('@')[0] || 'Du';
   const forening = activeMembership?.forening?.name ?? '';
@@ -111,6 +114,27 @@ export default function Profil() {
           </Pressable>
         );
       })}
+
+      {/* Inställningar */}
+      <Text style={styles.section}>Inställningar</Text>
+      <Card style={styles.navRow}>
+        <View style={styles.navTile}>
+          <Icon name="bell" size={20} color={colors.primary} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.navTitle}>Ljudeffekter</Text>
+          <Text style={styles.navSub}>Ljud vid incheckning, nivå och märken</Text>
+        </View>
+        <Switch
+          value={sfxEnabled}
+          onValueChange={(on) => {
+            setSfxEnabled(on);
+            if (on) playSfx('tap');
+          }}
+          trackColor={{ true: colors.primary, false: '#dcd4f0' }}
+          thumbColor={colors.white}
+        />
+      </Card>
 
       <View style={{ marginTop: 22 }}>
         <PrimaryButton label="Logga ut" onPress={signOut} colorsPair={['#2c2340', '#171226'] as const} />

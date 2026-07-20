@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toast } from '@/components/Toast';
+import { initSfx } from '@/lib/sfx';
 import { AuthProvider } from '@/providers/AuthProvider';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -41,6 +42,11 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
+
+  // Load the sound preference and warm the players before the first check-in.
+  useEffect(() => {
+    void initSfx();
+  }, []);
 
   if (!ready) return null;
 

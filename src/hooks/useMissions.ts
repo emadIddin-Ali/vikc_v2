@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { announceNewBadges } from '@/lib/badgeSeen';
+import { playSfx } from '@/lib/sfx';
 import { supabase } from '@/lib/supabase';
 import type { MissionWithProgress } from '@/lib/types';
+import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/store/toast';
 
 export type MissionsData = {
@@ -40,6 +43,9 @@ export function useMissions(foreningId: string | null, userId: string | undefine
 
 export function useClaimMission() {
   const qc = useQueryClient();
+  const { session, activeMembership } = useAuth();
+  const userId = session?.user.id;
+  const foreningId = activeMembership?.forening_id;
   return useMutation<{ awarded_xp: number }, Error, string>({
     mutationFn: async (missionId) => {
       const { data, error } = await supabase.rpc('claim_mission', { p_mission_id: missionId });
@@ -48,8 +54,11 @@ export function useClaimMission() {
     },
     onSuccess: (data) => {
       toast(`+${data.awarded_xp} XP inlöst!`);
+      playSfx('coin');
       qc.invalidateQueries({ queryKey: ['missions'] });
       qc.invalidateQueries({ queryKey: ['home'] });
+      qc.invalidateQueries({ queryKey: ['profile'] });
+      if (userId && foreningId) announceNewBadges(userId, foreningId);
     },
     onError: (e) => toast(e.message),
   });

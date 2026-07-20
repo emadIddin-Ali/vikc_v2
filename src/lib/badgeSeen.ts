@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { playSfx } from '@/lib/sfx';
 import { supabase } from '@/lib/supabase';
 import type { BadgeRow } from '@/lib/types';
+import { toast } from '@/store/toast';
 
 /**
  * Badge unlocks are computed, not stored — so there is no server-side "you just
@@ -49,4 +51,21 @@ export async function claimNewBadges(userId: string, foreningId: string): Promis
   const seen = new Set((await readSeen(userId, foreningId)) ?? []);
   await writeSeen(userId, foreningId, unlocked.map((b) => b.code));
   return unlocked.filter((b) => !seen.has(b.code));
+}
+
+/**
+ * Toast any badge unlocked by something other than a check-in — redeeming a
+ * reward or claiming a mission. Delayed past the action's own toast (~2.2 s) so
+ * the two don't overwrite each other.
+ */
+export function announceNewBadges(userId: string, foreningId: string, delayMs = 2400): void {
+  claimNewBadges(userId, foreningId)
+    .then((fresh) => {
+      if (fresh.length === 0) return;
+      setTimeout(() => {
+        toast(fresh.length === 1 ? `Nytt märke: ${fresh[0].name}!` : `${fresh.length} nya märken!`);
+        playSfx('badge');
+      }, delayMs);
+    })
+    .catch(() => {});
 }
