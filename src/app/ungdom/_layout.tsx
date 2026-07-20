@@ -20,6 +20,7 @@ export default function UngdomLayout() {
       <Tabs.Screen name="profil" />
       <Tabs.Screen name="topplista" />
       <Tabs.Screen name="notiser" />
+      <Tabs.Screen name="narvaro" />
     </Tabs>
   );
 }

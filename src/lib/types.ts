@@ -173,6 +173,17 @@ export type Reward = {
   cost: number;
 };
 
+/** One badge + whether the current member has unlocked it (from youth_badges). */
+export type BadgeRow = {
+  code: string;
+  name: string;
+  icon: string;
+  tint: string;
+  color: string;
+  unlocked: boolean;
+  sort: number;
+};
+
 /** One förening in the kommun overview (förening fields + aggregated stats). */
 export type KommunForening = Forening & {
   youth: number;
