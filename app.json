@@ -39,7 +39,9 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "LEVLA behöver kameran för att skanna QR-koden vid incheckning."
+          "cameraPermission": "LEVLA behöver kameran för att skanna QR-koden vid incheckning.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       [
@@ -48,9 +50,23 @@
           "locationWhenInUsePermission": "LEVLA använder din plats för att bekräfta att du är på gården vid incheckning."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LEVLA behöver dina bilder för att du ska kunna skicka fotobevis vid incheckning.",
+          "cameraPermission": "LEVLA behöver kameran för att du ska kunna ta fotobevis vid incheckning.",
+          "microphonePermission": false
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-notifications",
-      "expo-audio"
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
