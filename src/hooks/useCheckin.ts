@@ -21,6 +21,8 @@ export function useCheckin() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['home'] });
       qc.invalidateQueries({ queryKey: ['open-activities'] });
+      qc.invalidateQueries({ queryKey: ['profile'] });
+      qc.invalidateQueries({ queryKey: ['attendance'] });
     },
   });
 }
@@ -51,6 +53,8 @@ export function useOpenCheckin() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['home'] });
       qc.invalidateQueries({ queryKey: ['open-activities'] });
+      qc.invalidateQueries({ queryKey: ['profile'] });
+      qc.invalidateQueries({ queryKey: ['attendance'] });
     },
   });
 }

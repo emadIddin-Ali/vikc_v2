@@ -173,6 +173,24 @@ export type Reward = {
   cost: number;
 };
 
+/** One badge + the member's progress toward it (from youth_badges). */
+export type BadgeRow = {
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+  tint: string;
+  color: string;
+  category: string;
+  /** Hidden until unlocked — shown as "???" in the UI. */
+  secret: boolean;
+  unlocked: boolean;
+  /** Capped at `goal`, so progress/goal is always a valid 0–1 fraction. */
+  progress: number;
+  goal: number;
+  sort: number;
+};
+
 /** One förening in the kommun overview (förening fields + aggregated stats). */
 export type KommunForening = Forening & {
   youth: number;

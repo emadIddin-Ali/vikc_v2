@@ -128,6 +128,7 @@ supabase/                  # migrations + seed
 - ✅ Ledarverktyg — översikt m. aktiv-lista, agenda/tid + incheckningsfönster, öppna/kontinuerliga aktiviteter (daily-limit), fotobevis, Visa QR, uppdragshantering, närvaro per aktivitet, belöningar, sätt föreningens plats, **redigera & ta bort** aktiviteter/uppdrag
 - ✅ Push-pipeline byggd (expo-notifications + pg_net → Expo push) — **aktiveras med en development build** (Expo Go stödjer ej push)
 - ✅ Kommunöversikt (superadmin) — aggregerad statistik, öppna förening som ledare, skapa förening
+- ✅ Profil — statistik, **Min närvaro** (alla egna incheckningar) och **Märken**: 27 märken i sex kategorier med progress mot varje mål, hemliga märken och egen märkesvy. Upplåsning beräknas ur medlemsdata, ingen unlock-tabell
 - ✅ Polish — animationer (konfetti, floaty maskot, ping, XP-bar, toast-slide) + haptik, respekterar *reduce motion*
 - ⏭️ Näst: ljud-SFX → fler mikrointeraktioner → tillgänglighet/tester
 

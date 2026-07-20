@@ -10,15 +10,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Confetti } from '@/components/Confetti';
 import { Floaty } from '@/components/Floaty';
-import { Icon } from '@/components/Icon';
+import { Icon, IconName } from '@/components/Icon';
 import { Mascot } from '@/components/Mascot';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { claimNewBadges } from '@/lib/badgeSeen';
 import { haptics } from '@/lib/haptics';
 import { useCheckin, useOpenCheckin, useYouthOpenActivities } from '@/hooks/useCheckin';
 import { capturePhoto, uploadCheckinPhoto } from '@/lib/photo';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/store/toast';
-import type { Activity, CheckinResult, YouthOpenActivity } from '@/lib/types';
+import type { Activity, BadgeRow, CheckinResult, YouthOpenActivity } from '@/lib/types';
 import { colors, font, gradients, levelName } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -48,8 +49,9 @@ export default function Scan() {
   const venueLng = forening?.lng ?? null;
   const radiusM = forening?.geofence_radius_m ?? 120;
 
-  const [mode, setMode] = useState<'scan' | 'success' | 'levelup'>('scan');
+  const [mode, setMode] = useState<'scan' | 'success' | 'levelup' | 'badge'>('scan');
   const [result, setResult] = useState<CheckinResult | null>(null);
+  const [newBadges, setNewBadges] = useState<BadgeRow[]>([]);
   const [simulateOnSite, setSimulateOnSite] = useState(true);
   const [geo, setGeo] = useState<GeoState>('searching');
   const [distance, setDistance] = useState<number | null>(null);
@@ -113,7 +115,7 @@ export default function Scan() {
 
   useEffect(() => {
     if (mode === 'success') haptics.success();
-    else if (mode === 'levelup') haptics.medium();
+    else if (mode === 'levelup' || mode === 'badge') haptics.medium();
   }, [mode]);
 
   useEffect(() => {
@@ -126,6 +128,23 @@ export default function Scan() {
 
   const inRange = geo === 'inrange';
   const busy = checkin.isPending || openCheckin.isPending || busyId !== null;
+
+  /** Show the success screen, and look up any badges the check-in just unlocked. */
+  const onCheckedIn = useCallback(
+    (data: CheckinResult) => {
+      setResult(data);
+      setMode('success');
+      setNewBadges([]);
+      if (userId && foreningId) {
+        claimNewBadges(userId, foreningId)
+          .then(setNewBadges)
+          .catch(() => {
+            // A failed lookup only costs the celebration, not the check-in.
+          });
+      }
+    },
+    [userId, foreningId],
+  );
 
   const runScan = useCallback(
     (token: string | undefined) => {
@@ -145,10 +164,7 @@ export default function Scan() {
       checkin.mutate(
         { token, lat: coords?.lat ?? null, lng: coords?.lng ?? null, accuracy: simulateOnSite ? null : accuracy },
         {
-          onSuccess: (data) => {
-            setResult(data);
-            setMode('success');
-          },
+          onSuccess: onCheckedIn,
           onError: (e) => {
             handledRef.current = false;
             Alert.alert('Kunde inte checka in', e.message);
@@ -156,7 +172,7 @@ export default function Scan() {
         },
       );
     },
-    [busy, inRange, simulateOnSite, venueLat, venueLng, deviceCoords, accuracy, checkin],
+    [busy, inRange, simulateOnSite, venueLat, venueLng, deviceCoords, accuracy, checkin, onCheckedIn],
   );
 
   const runOpenCheckin = async (a: YouthOpenActivity) => {
@@ -181,10 +197,7 @@ export default function Scan() {
       openCheckin.mutate(
         { activityId: a.id, lat: coords?.lat ?? null, lng: coords?.lng ?? null, accuracy: simulateOnSite ? null : accuracy, photoUrl },
         {
-          onSuccess: (data) => {
-            setResult(data);
-            setMode('success');
-          },
+          onSuccess: onCheckedIn,
           onError: (e) => Alert.alert('Kunde inte checka in', e.message),
         },
       );
@@ -196,6 +209,12 @@ export default function Scan() {
   };
 
   const finish = useCallback(() => router.back(), [router]);
+
+  /** Celebration order: check-in → level-up → new badges → back. */
+  const afterLevel = useCallback(
+    () => (newBadges.length > 0 ? setMode('badge') : finish()),
+    [newBadges.length, finish],
+  );
 
   if (mode === 'success' && result) {
     return (
@@ -226,7 +245,7 @@ export default function Scan() {
             <Text style={styles.chipLabel}>poäng</Text>
           </View>
         </View>
-        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.white }]} onPress={() => (result.leveled_up ? setMode('levelup') : finish())}>
+        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.white }]} onPress={() => (result.leveled_up ? setMode('levelup') : afterLevel())}>
           <Text style={[styles.celebrateBtnText, { color: colors.green2 }]}>Fortsätt</Text>
         </Pressable>
       </LinearGradient>
@@ -243,8 +262,43 @@ export default function Scan() {
         </Floaty>
         <Text style={styles.levelBig}>Nivå {result.level}!</Text>
         <Text style={styles.levelName}>{levelName(result.level)}</Text>
-        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.gold }]} onPress={finish}>
+        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.gold }]} onPress={afterLevel}>
           <Text style={[styles.celebrateBtnText, { color: colors.ink }]}>Nice!</Text>
+        </Pressable>
+      </LinearGradient>
+    );
+  }
+
+  if (mode === 'badge' && newBadges.length > 0) {
+    const [hero, ...others] = newBadges;
+    const extra = others.slice(0, 4);
+    const rest = others.length - extra.length;
+    return (
+      <LinearGradient colors={gradients.gold} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.celebrate}>
+        <Confetti />
+        <Text style={styles.badgeKicker}>{newBadges.length > 1 ? 'NYA MÄRKEN' : 'NYTT MÄRKE'}</Text>
+
+        <Floaty style={{ marginTop: 18 }}>
+          <View style={[styles.badgeWinTile, { backgroundColor: hero.tint }]}>
+            <Icon name={hero.icon as IconName} size={44} color={hero.color} />
+          </View>
+        </Floaty>
+        <Text style={styles.badgeWinName}>{hero.name}</Text>
+        <Text style={styles.badgeWinDesc}>{hero.description}</Text>
+
+        {/* Rare, but a single check-in can complete several at once. */}
+        {extra.map((b) => (
+          <View key={b.code} style={styles.badgeExtraRow}>
+            <View style={[styles.badgeExtraTile, { backgroundColor: b.tint }]}>
+              <Icon name={b.icon as IconName} size={20} color={b.color} />
+            </View>
+            <Text style={styles.badgeExtraName}>{b.name}</Text>
+          </View>
+        ))}
+        {rest > 0 && <Text style={[styles.badgeWinDesc, { marginTop: 8 }]}>+ {rest} till</Text>}
+
+        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.ink }]} onPress={finish}>
+          <Text style={[styles.celebrateBtnText, { color: colors.white }]}>Snyggt!</Text>
         </Pressable>
       </LinearGradient>
     );
@@ -409,6 +463,19 @@ const styles = StyleSheet.create({
   celebrateBtn: { marginTop: 32, paddingVertical: 15, paddingHorizontal: 46, borderRadius: 16 },
   celebrateBtnText: { fontFamily: font.semibold, fontSize: 15 },
   levelKicker: { fontFamily: font.semibold, fontSize: 13, letterSpacing: 4, color: 'rgba(255,255,255,0.85)' },
+  badgeKicker: { fontFamily: font.semibold, fontSize: 13, letterSpacing: 4, color: 'rgba(44,35,64,0.65)' },
+  badgeWinTile: {
+    width: 104, height: 104, borderRadius: 30, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 4, borderColor: 'rgba(255,255,255,0.7)',
+  },
+  badgeWinName: { fontFamily: font.bold, fontSize: 24, color: colors.ink, marginTop: 14 },
+  badgeWinDesc: { fontFamily: font.medium, fontSize: 13, color: 'rgba(44,35,64,0.72)', marginTop: 3, textAlign: 'center' },
+  badgeExtraRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10,
+    backgroundColor: 'rgba(255,255,255,0.55)', borderRadius: 14, paddingVertical: 7, paddingHorizontal: 12,
+  },
+  badgeExtraTile: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  badgeExtraName: { fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
   levelBig: { fontFamily: font.bold, fontSize: 44, color: colors.white, marginTop: 4 },
   levelName: { fontFamily: font.semibold, fontSize: 16, color: colors.gold, marginTop: 6 },
 });
