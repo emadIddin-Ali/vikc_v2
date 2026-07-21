@@ -52,7 +52,10 @@ export default function Scan() {
   const [mode, setMode] = useState<'scan' | 'success' | 'levelup' | 'badge'>('scan');
   const [result, setResult] = useState<CheckinResult | null>(null);
   const [newBadges, setNewBadges] = useState<BadgeRow[]>([]);
-  const [simulateOnSite, setSimulateOnSite] = useState(true);
+  // Simulating your position sends the venue's own coordinates, which makes the
+  // server-side geofence pass at zero distance — i.e. it turns the geo-lock off.
+  // It's a test affordance, so it only exists in development builds.
+  const [simulateOnSite, setSimulateOnSite] = useState(__DEV__);
   const [geo, setGeo] = useState<GeoState>('searching');
   const [distance, setDistance] = useState<number | null>(null);
   const [deviceCoords, setDeviceCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -151,7 +154,11 @@ export default function Scan() {
       if (!inRange) {
         // Camera recognised the code but we're not on-site — say so (debounced).
         handledRef.current = true;
-        toast('Du måste vara på plats. Slå på "Simulera att jag är på plats" för test.');
+        toast(
+          __DEV__
+            ? 'Du måste vara på plats. Slå på "Simulera att jag är på plats" för test.'
+            : 'Du måste vara på gården för att checka in.',
+        );
         setTimeout(() => {
           handledRef.current = false;
         }, 2500);
@@ -401,10 +408,12 @@ export default function Scan() {
           </View>
         )}
 
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Simulera att jag är på plats</Text>
-          <Switch value={simulateOnSite} onValueChange={setSimulateOnSite} trackColor={{ true: colors.primary, false: '#4a4468' }} thumbColor={colors.white} />
-        </View>
+        {__DEV__ && (
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Simulera att jag är på plats</Text>
+            <Switch value={simulateOnSite} onValueChange={setSimulateOnSite} trackColor={{ true: colors.primary, false: '#4a4468' }} thumbColor={colors.white} />
+          </View>
+        )}
       </ScrollView>
     </View>
   );
