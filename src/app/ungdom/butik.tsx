@@ -23,7 +23,6 @@ export default function Butik() {
 
   const rewards = data?.rewards ?? [];
   const points = data?.points ?? 0;
-  const redeemedIds = data?.redeemedIds ?? new Set<string>();
 
   return (
     <Screen
@@ -40,15 +39,23 @@ export default function Butik() {
 
       <View style={styles.grid}>
         {rewards.map((r, i) => {
-          const isRedeemed = redeemedIds.has(r.id);
+          const isRedeemed = r.mine;
+          const left = r.stock == null ? null : Math.max(0, r.stock - r.taken);
+          const soldOut = left === 0;
           const affordable = points >= r.cost;
           const tint = ICON_TINT[r.icon] ?? colors.primary;
 
           return (
             <FadeIn key={r.id} index={i} style={styles.rewardCell}>
-            <Card style={[styles.rewardCard, { opacity: isRedeemed ? 0.55 : 1 }]}>
+            <Card style={[styles.rewardCard, { opacity: isRedeemed || soldOut ? 0.55 : 1 }]}>
               <View style={[styles.media, { backgroundColor: r.tint }]}>
                 <Icon name={r.icon as any} size={32} color={tint} />
+                {/* Scarcity is the point of a limited reward — say it on the tile. */}
+                {left != null && !isRedeemed && (
+                  <View style={[styles.stockPill, soldOut && { backgroundColor: colors.muted2 }]}>
+                    <Text style={styles.stockText}>{soldOut ? 'Slut' : `${left} kvar`}</Text>
+                  </View>
+                )}
               </View>
               <Text style={styles.rewardTitle}>{r.title}</Text>
               {!!r.tag && <Text style={styles.rewardTag}>{r.tag}</Text>}
@@ -56,6 +63,10 @@ export default function Butik() {
               {isRedeemed ? (
                 <View style={[styles.redeemBtn, { backgroundColor: colors.tintPurple2 }]}>
                   <Text style={[styles.redeemText, { color: colors.muted2 }]}>✓ Uttagen</Text>
+                </View>
+              ) : soldOut ? (
+                <View style={[styles.redeemBtn, { backgroundColor: '#f4f2fb' }]}>
+                  <Text style={[styles.redeemText, { color: colors.muted2 }]}>Slutsåld</Text>
                 </View>
               ) : affordable ? (
                 <Tappable disabled={redeem.isPending} scale={0.94} onPress={() => redeem.mutate(r.id)}>
@@ -91,6 +102,11 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 16 },
   rewardCell: { width: '48%', marginBottom: 13 },
   rewardCard: { padding: 13 },
+  stockPill: {
+    position: 'absolute', top: 6, right: 6, backgroundColor: colors.ink,
+    borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  stockText: { fontFamily: font.bold, fontSize: 10, color: colors.white },
   media: { height: 74, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   rewardTitle: { fontFamily: font.semibold, fontSize: 13, color: colors.ink, marginTop: 9 },
   rewardTag: { fontFamily: font.regular, fontSize: 11, color: colors.muted2, marginTop: 1 },

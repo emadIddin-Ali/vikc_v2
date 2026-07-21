@@ -3,13 +3,12 @@ import { announceNewBadges } from '@/lib/badgeSeen';
 import { invalidateMemberData } from '@/lib/queries';
 import { playSfx } from '@/lib/sfx';
 import { supabase } from '@/lib/supabase';
-import type { Reward } from '@/lib/types';
+import type { ShopReward } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/store/toast';
 
 export type ShopData = {
-  rewards: Reward[];
-  redeemedIds: Set<string>;
+  rewards: ShopReward[];
   points: number;
 };
 
@@ -19,15 +18,14 @@ export function useShop(foreningId: string | null, userId: string | undefined) {
     enabled: !!foreningId && !!userId,
     queryFn: async () => {
       const fid = foreningId as string;
-      const [rewardsRes, redRes, memRes] = await Promise.all([
-        supabase.from('reward').select('*').eq('forening_id', fid).eq('active', true).order('cost', { ascending: true }),
-        supabase.from('redemption').select('reward_id').eq('forening_id', fid),
+      // youth_shop is a function because RLS hides other members' redemptions —
+      // a direct query would report every reward as untouched.
+      const [shopRes, memRes] = await Promise.all([
+        supabase.rpc('youth_shop', { p_forening: fid }),
         supabase.from('membership').select('points').eq('forening_id', fid).eq('user_id', userId as string).maybeSingle(),
       ]);
-      const redeemedIds = new Set(((redRes.data as { reward_id: string }[]) ?? []).map((r) => r.reward_id));
       return {
-        rewards: (rewardsRes.data as Reward[]) ?? [],
-        redeemedIds,
+        rewards: (shopRes.data as ShopReward[]) ?? [],
         points: (memRes.data as { points: number } | null)?.points ?? 0,
       };
     },

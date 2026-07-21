@@ -134,6 +134,7 @@ supabase/                  # migrations + seed
 - ✅ Ljud-SFX (`expo-audio`) vid incheckning, level up, nytt märke och poängväxling. Ljuden är **genererade** av `scripts/gen-sfx.mjs` (licensfria, ändra noterna och kör om). Mixas med annat ljud och respekterar iOS tystläge; av/på i profilen
 - ✅ Mikrointeraktioner — tryckfeedback på allt tappbart (`Tappable`), siffror som räknar upp/ned (`CountUp`), listor som tonar in i tur och ordning (`FadeIn`), tabbikon som poppar vid byte. Allt respekterar *reduce motion*
 - ✅ Tema per förening — en ledare väljer Lila, Soluppgång eller Hav i ledarvyn. Gäller bara den föreningens medlemmar (`0016_forening_theme.sql`)
+- ✅ Antal per belöning — ledaren sätter t.ex. 15 biobiljetter; butiken visar "12 kvar" och slutsåld när de tar slut (`0017_reward_stock.sql`)
 - ⏭️ Näst: tillgänglighet/tester
 
 ## Development build (aktiverar push + laddar snabbare än Expo Go)

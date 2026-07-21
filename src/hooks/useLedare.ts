@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { Activity, LedareCheckin, LedareOverview, LedareYouth, Mission, Reward } from '@/lib/types';
+import type { Activity, LedareCheckin, LedareOverview, LedareReward, LedareYouth, Mission } from '@/lib/types';
 import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/store/toast';
 import type { AppThemeId } from '@/theme/tokens';
@@ -141,18 +141,32 @@ export function useMarkPresent() {
 }
 
 export function useLedareRewards(foreningId: string | null) {
-  return useQuery<Reward[]>({
+  return useQuery<LedareReward[]>({
     queryKey: ['ledare-rewards', foreningId],
     enabled: !!foreningId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reward')
-        .select('*')
-        .eq('forening_id', foreningId as string)
-        .order('created_at', { ascending: false });
+      // Function, not a select: the leader needs the claimed count per reward.
+      const { data, error } = await supabase.rpc('ledare_rewards', { p_forening: foreningId });
       if (error) throw new Error(error.message);
-      return (data as Reward[]) ?? [];
+      return (data as LedareReward[]) ?? [];
     },
+  });
+}
+
+/** Change how many of a reward can still be handed out. null = unlimited. */
+export function useSetRewardStock() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { reward: string; stock: number | null }>({
+    mutationFn: async (v) => {
+      const { error } = await supabase.rpc('set_reward_stock', { p_reward: v.reward, p_stock: v.stock });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast('Antalet sparat');
+      qc.invalidateQueries({ queryKey: ['ledare-rewards'] });
+      qc.invalidateQueries({ queryKey: ['shop'] });
+    },
+    onError: (e) => toast(e.message),
   });
 }
 
@@ -162,6 +176,8 @@ export type AddRewardVars = {
   icon: string;
   tint: string;
   cost: number;
+  /** How many can be handed out. null = unlimited. */
+  stock: number | null;
 };
 
 export function useAddReward() {
@@ -174,6 +190,7 @@ export function useAddReward() {
         icon: v.icon,
         tint: v.tint,
         cost: v.cost,
+        stock: v.stock,
         tag: 'Ny belöning',
       });
       if (error) throw new Error(error.message);

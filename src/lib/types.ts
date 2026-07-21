@@ -173,7 +173,27 @@ export type Reward = {
   icon: string;
   tint: string;
   cost: number;
+  /** How many can be handed out in total. null = unlimited. */
+  stock: number | null;
 };
+
+/** A shop row as the youth sees it (from youth_shop). */
+export type ShopReward = {
+  id: string;
+  title: string;
+  tag: string | null;
+  icon: string;
+  tint: string;
+  cost: number;
+  stock: number | null;
+  /** How many have been claimed, by anyone in the förening. */
+  taken: number;
+  /** Whether this member already claimed it. */
+  mine: boolean;
+};
+
+/** A shop row as the ledare sees it (from ledare_rewards). */
+export type LedareReward = ShopReward & { active: boolean };
 
 /** One badge + the member's progress toward it (from youth_badges). */
 export type BadgeRow = {
