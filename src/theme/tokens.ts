@@ -49,6 +49,27 @@ export const gradients = {
   screen: ['#ece5ff', '#fdf6ef'] as const,
 };
 
+/**
+ * Selectable förening themes. A ledare picks one and it repaints the brand
+ * gradient for everyone in that förening — the level card, avatars, hero
+ * surfaces and the scan button. Accent colours stay put; only the gradient
+ * moves, which is what makes this safe to change without redesigning icons,
+ * tints and states around it.
+ */
+export type AppThemeId = 'lila' | 'soluppgang' | 'hav';
+
+export const APP_THEMES: Record<AppThemeId, { name: string; gradient: readonly [string, string] }> = {
+  lila: { name: 'Lila', gradient: ['#6c4cf1', '#a24cf1'] },
+  soluppgang: { name: 'Soluppgång', gradient: ['#ff7a4d', '#ff4d8d'] },
+  hav: { name: 'Hav', gradient: ['#2b6bff', '#0ea5e9'] },
+};
+
+export const DEFAULT_THEME: AppThemeId = 'lila';
+
+export function themeGradient(id: string | null | undefined): readonly [string, string] {
+  return APP_THEMES[(id as AppThemeId) ?? DEFAULT_THEME]?.gradient ?? APP_THEMES[DEFAULT_THEME].gradient;
+}
+
 export const radius = {
   sm: 12,
   tile: 14,

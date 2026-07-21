@@ -133,6 +133,7 @@ supabase/                  # migrations + seed
 - ✅ Firande-maskot — Gnista fjädrar in i överstorlek på strålkrans med pulserande ringar vid incheckning och level up
 - ✅ Ljud-SFX (`expo-audio`) vid incheckning, level up, nytt märke och poängväxling. Ljuden är **genererade** av `scripts/gen-sfx.mjs` (licensfria, ändra noterna och kör om). Mixas med annat ljud och respekterar iOS tystläge; av/på i profilen
 - ✅ Mikrointeraktioner — tryckfeedback på allt tappbart (`Tappable`), siffror som räknar upp/ned (`CountUp`), listor som tonar in i tur och ordning (`FadeIn`), tabbikon som poppar vid byte. Allt respekterar *reduce motion*
+- ✅ Tema per förening — en ledare väljer Lila, Soluppgång eller Hav i ledarvyn. Gäller bara den föreningens medlemmar (`0016_forening_theme.sql`)
 - ⏭️ Näst: tillgänglighet/tester
 
 ## Development build (aktiverar push + laddar snabbare än Expo Go)

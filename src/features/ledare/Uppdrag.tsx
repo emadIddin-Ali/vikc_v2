@@ -7,6 +7,7 @@ import { TextField } from '@/components/ui/TextField';
 import { EditMission } from '@/features/ledare/EditMission';
 import type { Mission } from '@/lib/types';
 import { useCreateMission, useLedareMissions } from '@/hooks/useLedare';
+import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { ICON_TINT, colors, font, gradients } from '@/theme/tokens';
 import { toast } from '@/store/toast';
 
@@ -20,6 +21,7 @@ const ICON_OPTIONS: { value: IconName; tint: string }[] = [
 ];
 
 export function Uppdrag({ fid }: { fid: string }) {
+  const brand = useBrandGradient();
   const { data: missions } = useLedareMissions(fid);
   const create = useCreateMission();
   const [title, setTitle] = useState('');
@@ -84,7 +86,7 @@ export function Uppdrag({ fid }: { fid: string }) {
         </View>
 
         <Pressable disabled={create.isPending} onPress={onCreate}>
-          <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.btn}>
+          <LinearGradient colors={brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.btn}>
             <Text style={styles.btnText}>Skapa uppdrag</Text>
           </LinearGradient>
         </Pressable>

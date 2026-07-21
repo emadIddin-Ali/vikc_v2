@@ -10,10 +10,12 @@ import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
 import { useAttendanceList, useProfileData } from '@/hooks/useProfile';
 import { fmtDateTime } from '@/lib/date';
+import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { colors, font, gradients, radius, shadow } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function Narvaro() {
+  const brand = useBrandGradient();
   const router = useRouter();
   const { session, activeMembership } = useAuth();
   const foreningId = activeMembership?.forening_id ?? null;
@@ -40,7 +42,7 @@ export default function Narvaro() {
       </View>
 
       <View style={styles.duo}>
-        <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bigStat}>
+        <LinearGradient colors={brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bigStat}>
           <Text style={styles.bigValue}>{visits}</Text>
           <Text style={styles.bigLabel}>Besök totalt</Text>
         </LinearGradient>

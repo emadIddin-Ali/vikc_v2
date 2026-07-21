@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Activity, LedareCheckin, LedareOverview, LedareYouth, Mission, Reward } from '@/lib/types';
+import { useAuth } from '@/providers/AuthProvider';
 import { toast } from '@/store/toast';
+import type { AppThemeId } from '@/theme/tokens';
 
 /** KPI numbers for the leader overview. */
 export function useLedareOverview(foreningId: string | null) {
@@ -242,6 +244,29 @@ export function useSetForeningLocation() {
     onSuccess: () => {
       toast('Föreningens plats sparad');
       qc.invalidateQueries({ queryKey: ['open-activities'] });
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
+/** Set the förening's brand theme. Only affects this förening's members. */
+export function useSetForeningTheme() {
+  const qc = useQueryClient();
+  const { refresh } = useAuth();
+  return useMutation<void, Error, { forening: string; theme: AppThemeId }>({
+    mutationFn: async (v) => {
+      const { error } = await supabase.rpc('set_forening_theme', {
+        p_forening: v.forening,
+        p_theme: v.theme,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: async () => {
+      toast('Temat sparat');
+      // The gradient is read from the förening on the auth context, not from a
+      // query — so the context has to be reloaded for the app to repaint.
+      await refresh();
+      qc.invalidateQueries({ queryKey: ['ledare-overview'] });
     },
     onError: (e) => toast(e.message),
   });

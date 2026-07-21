@@ -9,10 +9,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
 import { groupBadges, useProfileData } from '@/hooks/useProfile';
+import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { colors, font, gradients, radius, shadow } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function Marken() {
+  const brand = useBrandGradient();
   const router = useRouter();
   const { session, activeMembership } = useAuth();
   const { data, isLoading } = useProfileData(activeMembership?.forening_id ?? null, session?.user.id);
@@ -35,7 +37,7 @@ export default function Marken() {
         <Text style={styles.h1}>Märken</Text>
       </View>
 
-      <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+      <LinearGradient colors={brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
         <Text style={styles.heroKicker}>DIN SAMLING</Text>
         <Text style={styles.heroValue}>
           {unlocked} <Text style={styles.heroOf}>av {badges.length}</Text>

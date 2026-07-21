@@ -5,13 +5,15 @@ import { Icon, IconName } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useMarkNotificationsRead, useNotifications } from '@/hooks/useNotifications';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { ICON_TINT, colors, font, relativeDate } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function Notiser() {
   const { activeMembership } = useAuth();
   const fid = activeMembership?.forening_id ?? null;
-  const { data } = useNotifications(fid);
+  const { data, refetch } = useNotifications(fid);
+  useRefreshOnFocus(refetch);
   const markRead = useMarkNotificationsRead();
 
   // Opening the screen marks everything read (clears the home bell badge).

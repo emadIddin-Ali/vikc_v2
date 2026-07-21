@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, IconName } from '@/components/Icon';
 import { Tappable } from '@/components/ui/Tappable';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { colors, gradients, radius, shadow } from '@/theme/tokens';
 
 /** Minimal structural type — avoids depending on @react-navigation types directly. */
@@ -24,6 +25,7 @@ const ICONS: Record<string, IconName> = {
 };
 
 export function YouthTabBar({ state, navigation }: TabBarProps) {
+  const brand = useBrandGradient();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const activeName = state.routes[state.index]?.name;
@@ -41,7 +43,7 @@ export function YouthTabBar({ state, navigation }: TabBarProps) {
       {navRoutes.slice(0, mid).map(renderItem)}
 
       <Tappable containerStyle={styles.fabWrap} style={styles.fabInner} scale={0.9} onPress={() => router.push('/scan')} hitSlop={8}>
-        <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fab}>
+        <LinearGradient colors={brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.fab}>
           <Icon name="camera" size={24} color={colors.white} />
         </LinearGradient>
       </Tappable>

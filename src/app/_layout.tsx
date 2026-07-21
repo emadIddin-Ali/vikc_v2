@@ -5,11 +5,12 @@ import {
   Fredoka_700Bold,
   useFonts,
 } from '@expo-google-fonts/fredoka';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toast } from '@/components/Toast';
@@ -46,6 +47,16 @@ export default function RootLayout() {
   // Load the sound preference and warm the players before the first check-in.
   useEffect(() => {
     void initSfx();
+  }, []);
+
+  // React Query's refetch-on-focus does nothing in React Native until the
+  // focus manager is told what "focused" means. Without this, data goes stale
+  // while the app sits in the background and stays stale on return.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (status) => {
+      focusManager.setFocused(status === 'active');
+    });
+    return () => sub.remove();
   }, []);
 
   if (!ready) return null;

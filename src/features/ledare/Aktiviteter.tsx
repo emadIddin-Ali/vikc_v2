@@ -7,13 +7,16 @@ import { Card } from '@/components/Card';
 import { DateTimeField } from '@/components/DateTimeField';
 import { Icon, IconName } from '@/components/Icon';
 import { MapPicker, MapPickerHandle } from '@/components/MapPicker';
+import { Tappable } from '@/components/ui/Tappable';
 import { TextField } from '@/components/ui/TextField';
 import { EditActivity } from '@/features/ledare/EditActivity';
 import { dateKey, dayHeading, fmtDateTime, fmtTime } from '@/lib/date';
 import type { Activity } from '@/lib/types';
 import { toast } from '@/store/toast';
-import { useLedareActivities, usePublishActivity, useSetForeningLocation } from '@/hooks/useLedare';
-import { THEMES, activityTheme, colors, font, gradients } from '@/theme/tokens';
+import { useLedareActivities, usePublishActivity, useSetForeningLocation, useSetForeningTheme } from '@/hooks/useLedare';
+import { useBrandGradient } from '@/hooks/useBrandGradient';
+import { APP_THEMES, DEFAULT_THEME, THEMES, activityTheme, colors, font, gradients } from '@/theme/tokens';
+import type { AppThemeId } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
 const THEME_IDS = Object.keys(THEMES);
@@ -45,11 +48,13 @@ function Badge({ text, ink }: { text: string; ink: string }) {
 }
 
 export function Aktiviteter({ fid }: { fid: string }) {
+  const brand = useBrandGradient();
   const { activeForening, refresh } = useAuth();
   const forening = activeForening;
   const { data: activities } = useLedareActivities(fid);
   const publish = usePublishActivity();
   const setLoc = useSetForeningLocation();
+  const setAppTheme = useSetForeningTheme();
   const mapRef = useRef<MapPickerHandle>(null);
 
   const [title, setTitle] = useState('');
@@ -237,6 +242,37 @@ export function Aktiviteter({ fid }: { fid: string }) {
         </Pressable>
       </Card>
 
+      <Card style={styles.locCard}>
+        <Text style={styles.formTitle}>Appens tema</Text>
+        <Text style={styles.locHint}>
+          Färgen ungdomarna i {forening?.name ?? 'föreningen'} ser. Gäller bara den här föreningen.
+        </Text>
+        <View style={styles.appThemeRow}>
+          {(Object.keys(APP_THEMES) as AppThemeId[]).map((id) => {
+            const active = (forening?.theme ?? DEFAULT_THEME) === id;
+            return (
+              <Tappable
+                key={id}
+                containerStyle={{ flex: 1 }}
+                scale={0.94}
+                disabled={setAppTheme.isPending}
+                onPress={() => setAppTheme.mutate({ forening: fid, theme: id })}
+              >
+                <LinearGradient
+                  colors={APP_THEMES[id].gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={[styles.appThemeSwatch, active && styles.appThemeSwatchActive]}
+                >
+                  {active && <Icon name="check" size={20} color={colors.white} />}
+                </LinearGradient>
+                <Text style={[styles.appThemeName, active && { color: colors.ink }]}>{APP_THEMES[id].name}</Text>
+              </Tappable>
+            );
+          })}
+        </View>
+      </Card>
+
       <Card style={styles.form}>
         <Text style={styles.formTitle}>Ny aktivitet</Text>
         <TextField placeholder="Namn, t.ex. Fotbollskväll" value={title} onChangeText={setTitle} style={styles.input} />
@@ -328,7 +364,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
         </LinearGradient>
 
         <Pressable disabled={publish.isPending} onPress={onPublish}>
-          <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.publishBtn}>
+          <LinearGradient colors={brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.publishBtn}>
             <Text style={styles.publishText}>Lägg upp aktivitet</Text>
           </LinearGradient>
         </Pressable>
@@ -376,6 +412,17 @@ const styles = StyleSheet.create({
   locCard: { padding: 15, marginBottom: 12 },
   locHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   locHint: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted2, marginTop: 4 },
+
+  appThemeRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  appThemeSwatch: {
+    height: 58, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 3, borderColor: 'transparent',
+  },
+  appThemeSwatchActive: { borderColor: colors.ink },
+  appThemeName: {
+    fontFamily: font.medium, fontSize: 11.5, color: colors.muted2,
+    textAlign: 'center', marginTop: 5,
+  },
   formTitle: { fontFamily: font.semibold, fontSize: 14, color: colors.ink },
   input: { marginTop: 10 },
 

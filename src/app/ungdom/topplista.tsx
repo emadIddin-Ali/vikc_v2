@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { colors, fmt, font } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -12,7 +13,8 @@ const firstName = (name: string) => name.split(' ')[0];
 export default function Topplista() {
   const { activeMembership } = useAuth();
   const fid = activeMembership?.forening_id ?? null;
-  const { data } = useLeaderboard(fid);
+  const { data, refetch } = useLeaderboard(fid);
+  useRefreshOnFocus(refetch);
   const entries = data ?? [];
   const forening = activeMembership?.forening?.name ?? '';
 

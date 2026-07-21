@@ -15,6 +15,8 @@ export type Forening = {
   lat: number | null;
   lng: number | null;
   geofence_radius_m: number;
+  /** Brand gradient a ledare picked for this förening. See APP_THEMES. */
+  theme: string;
 };
 
 export type Profile = {

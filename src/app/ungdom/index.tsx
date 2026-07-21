@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { CountUp } from '@/components/ui/CountUp';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
+import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { useHomeData } from '@/hooks/useHomeData';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { fmtDateTime } from '@/lib/date';
@@ -21,6 +22,7 @@ import {
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function Hem() {
+  const brand = useBrandGradient();
   const router = useRouter();
   const { profile, activeMembership, session } = useAuth();
 
@@ -93,7 +95,7 @@ export default function Hem() {
           here today, and takes you to the scanner when you haven't. */}
       <Tappable disabled={!pep.action} scale={0.985} onPress={() => router.push('/scan')}>
         <LinearGradient
-          colors={gradients.brand}
+          colors={brand}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.levelCard}

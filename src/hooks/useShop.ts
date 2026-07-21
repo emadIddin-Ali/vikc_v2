@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { announceNewBadges } from '@/lib/badgeSeen';
+import { invalidateMemberData } from '@/lib/queries';
 import { playSfx } from '@/lib/sfx';
 import { supabase } from '@/lib/supabase';
 import type { Reward } from '@/lib/types';
@@ -47,9 +48,7 @@ export function useRedeemReward() {
     onSuccess: (data) => {
       toast(`${data.title} uttagen!`);
       playSfx('coin');
-      qc.invalidateQueries({ queryKey: ['shop'] });
-      qc.invalidateQueries({ queryKey: ['home'] });
-      qc.invalidateQueries({ queryKey: ['profile'] });
+      invalidateMemberData(qc);
       if (userId && foreningId) announceNewBadges(userId, foreningId);
     },
     onError: (e) => toast(e.message),

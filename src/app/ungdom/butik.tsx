@@ -7,14 +7,18 @@ import { Screen } from '@/components/Screen';
 import { CountUp } from '@/components/ui/CountUp';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
+import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
 import { useRedeemReward, useShop } from '@/hooks/useShop';
+import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { ICON_TINT, colors, font, gradients, shadow } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function Butik() {
+  const brand = useBrandGradient();
   const { activeMembership, session } = useAuth();
   const fid = activeMembership?.forening_id ?? null;
-  const { data } = useShop(fid, session?.user.id);
+  const { data, refetch } = useShop(fid, session?.user.id);
+  useRefreshOnFocus(refetch);
   const redeem = useRedeemReward();
 
   const rewards = data?.rewards ?? [];
@@ -52,7 +56,7 @@ export default function Butik() {
                 </View>
               ) : affordable ? (
                 <Tappable disabled={redeem.isPending} scale={0.94} onPress={() => redeem.mutate(r.id)}>
-                  <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.redeemBtn}>
+                  <LinearGradient colors={brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.redeemBtn}>
                     <Icon name="coin" size={14} color={colors.white} />
                     <Text style={[styles.redeemText, { color: colors.white, marginLeft: 5 }]}>{r.cost}</Text>
                   </LinearGradient>

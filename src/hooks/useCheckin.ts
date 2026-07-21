@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { invalidateMemberData } from '@/lib/queries';
 import { supabase } from '@/lib/supabase';
 import type { CheckinResult, YouthOpenActivity } from '@/lib/types';
 
@@ -18,12 +19,7 @@ export function useCheckin() {
       if (error) throw new Error(error.message);
       return data as CheckinResult;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['home'] });
-      qc.invalidateQueries({ queryKey: ['open-activities'] });
-      qc.invalidateQueries({ queryKey: ['profile'] });
-      qc.invalidateQueries({ queryKey: ['attendance'] });
-    },
+    onSuccess: () => invalidateMemberData(qc),
   });
 }
 
@@ -50,12 +46,7 @@ export function useOpenCheckin() {
       if (error) throw new Error(error.message);
       return data as CheckinResult;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['home'] });
-      qc.invalidateQueries({ queryKey: ['open-activities'] });
-      qc.invalidateQueries({ queryKey: ['profile'] });
-      qc.invalidateQueries({ queryKey: ['attendance'] });
-    },
+    onSuccess: () => invalidateMemberData(qc),
   });
 }
 

@@ -13,10 +13,12 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Tappable } from '@/components/ui/Tappable';
 import { highlightBadges, useProfileData } from '@/hooks/useProfile';
 import { playSfx, useSfxStore } from '@/lib/sfx';
+import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { colors, font, gradients, levelName, radius, shadow } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function Profil() {
+  const brand = useBrandGradient();
   const router = useRouter();
   const { profile, session, memberships, activeMembership, setActiveForeningId, signOut } = useAuth();
 
@@ -43,7 +45,7 @@ export default function Profil() {
       {/* Avatar + identity */}
       <View style={styles.head}>
         <View style={styles.avatarWrap}>
-          <LinearGradient colors={gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
+          <LinearGradient colors={brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.avatar}>
             <Mascot size={62} eyes />
           </LinearGradient>
           <View style={styles.levelBadge}>
