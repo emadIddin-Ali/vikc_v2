@@ -29,14 +29,16 @@ export default function Marken() {
     .sort((a, b) => b.progress / b.goal - a.progress / a.goal)[0];
 
   return (
-    <Screen>
-      <View style={styles.topRow}>
-        <Tappable onPress={() => router.back()} hitSlop={10} scale={0.9} style={styles.back}>
-          <Icon name="arrowL" size={18} color={colors.ink} />
-        </Tappable>
-        <Text style={styles.h1}>Märken</Text>
-      </View>
-
+    <Screen
+      header={
+        <View style={styles.topRow}>
+          <Tappable onPress={() => router.back()} hitSlop={10} scale={0.9} style={styles.back}>
+            <Icon name="arrowL" size={18} color={colors.ink} />
+          </Tappable>
+          <Text style={styles.h1}>Märken</Text>
+        </View>
+      }
+    >
       <LinearGradient colors={brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
         <Text style={styles.heroKicker}>DIN SAMLING</Text>
         <Text style={styles.heroValue}>

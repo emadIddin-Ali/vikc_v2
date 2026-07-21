@@ -27,12 +27,17 @@ export default function Topplista() {
   const placeNum = [2, 1, 3];
 
   return (
-    <Screen>
-      <View style={styles.titleRow}>
-        <Text style={styles.h1}>Topplista</Text>
-        <Icon name="trophy" size={20} color="#ff9500" />
-      </View>
-      <Text style={styles.sub}>Den här veckan · {forening}</Text>
+    <Screen
+      header={
+        <View>
+          <View style={styles.titleRow}>
+            <Text style={styles.h1}>Topplista</Text>
+            <Icon name="trophy" size={20} color="#ff9500" />
+          </View>
+          <Text style={styles.sub}>Den här veckan · {forening}</Text>
+        </View>
+      }
+    >
 
       <View style={styles.podium}>
         {podium.map((p, i) =>

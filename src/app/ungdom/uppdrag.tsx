@@ -21,8 +21,7 @@ export default function Uppdrag() {
   const weekPct = Math.round((weekDays / 3) * 100);
 
   return (
-    <Screen>
-      <Text style={styles.h1}>Uppdrag</Text>
+    <Screen header={<Text style={styles.h1}>Uppdrag</Text>}>
       <Text style={styles.intro}>
         Utmaningar du löser in för XP. Klara målet → tryck <Text style={styles.introB}>Lös in</Text>. Vissa räknas upp automatiskt när du checkar in.
       </Text>

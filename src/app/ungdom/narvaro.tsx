@@ -30,17 +30,19 @@ export default function Narvaro() {
   const forening = activeMembership?.forening?.name ?? '';
 
   return (
-    <Screen>
-      <View style={styles.titleRow}>
-        <Tappable onPress={() => router.back()} hitSlop={10} scale={0.9} style={styles.back}>
-          <Icon name="arrowL" size={18} color={colors.ink} />
-        </Tappable>
-        <View>
-          <Text style={styles.h1}>Min närvaro</Text>
-          <Text style={styles.sub}>{forening}</Text>
+    <Screen
+      header={
+        <View style={styles.titleRow}>
+          <Tappable onPress={() => router.back()} hitSlop={10} scale={0.9} style={styles.back}>
+            <Icon name="arrowL" size={18} color={colors.ink} />
+          </Tappable>
+          <View>
+            <Text style={styles.h1}>Min närvaro</Text>
+            <Text style={styles.sub}>{forening}</Text>
+          </View>
         </View>
-      </View>
-
+      }
+    >
       <View style={styles.duo}>
         <LinearGradient colors={brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bigStat}>
           <Text style={styles.bigValue}>{visits}</Text>

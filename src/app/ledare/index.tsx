@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/Icon';
+import { useRefreshAll } from '@/hooks/useRefreshAll';
 import { Aktiviteter } from '@/features/ledare/Aktiviteter';
 import { Beloningar } from '@/features/ledare/Beloningar';
 import { Narvaro } from '@/features/ledare/Narvaro';
@@ -28,6 +29,15 @@ export default function LedareHome() {
   const forening = activeForening?.name ?? '';
   const name = (profile?.display_name?.trim() || session?.user?.email?.split('@')[0] || 'ledare').split(' ')[0];
   const [tab, setTab] = useState<LedareTab>('oversikt');
+  const scrollRef = useRef<ScrollView>(null);
+  const { refreshing, onRefresh } = useRefreshAll();
+
+  // All five tabs share one ScrollView, so without this a new tab opens at the
+  // previous tab's scroll offset — which looks like the content is cut off.
+  const selectTab = (next: LedareTab) => {
+    setTab(next);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
 
   const backToKommun = () => {
     exitForeningAsLeader();
@@ -62,7 +72,7 @@ export default function LedareHome() {
         {TABS.map((t) => (
           <Pressable
             key={t.key}
-            onPress={() => setTab(t.key)}
+            onPress={() => selectTab(t.key)}
             style={[styles.pill, { backgroundColor: tab === t.key ? colors.ink : colors.white }]}
           >
             <Text style={[styles.pillText, { color: tab === t.key ? colors.white : colors.muted }]}>{t.label}</Text>
@@ -71,9 +81,18 @@ export default function LedareHome() {
       </ScrollView>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        ref={scrollRef}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
         {fid && tab === 'oversikt' && <Oversikt fid={fid} onNavigate={setTab} />}
         {fid && tab === 'aktiviteter' && <Aktiviteter fid={fid} />}
@@ -100,5 +119,5 @@ const styles = StyleSheet.create({
   pill: { paddingVertical: 9, paddingHorizontal: 15, borderRadius: 999 },
   pillText: { fontFamily: font.semibold, fontSize: 12.5 },
 
-  content: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 32 },
+  content: { paddingHorizontal: 18, paddingTop: 12 },
 });

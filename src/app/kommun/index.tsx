@@ -1,17 +1,19 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { TextField } from '@/components/ui/TextField';
 import { useCreateForening, useKommunOverview } from '@/hooks/useKommun';
+import { useRefreshAll } from '@/hooks/useRefreshAll';
 import { colors, fmt, font } from '@/theme/tokens';
 import { toast } from '@/store/toast';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function KommunHome() {
   const insets = useSafeAreaInsets();
+  const { refreshing, onRefresh } = useRefreshAll();
   const router = useRouter();
   const { signOut, openForeningAsLeader } = useAuth();
   const { data } = useKommunOverview();
@@ -50,7 +52,14 @@ export default function KommunHome() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
+        }
+      >
         <View style={styles.grid}>
           {kpis.map((k, i) => (
             <Card key={i} style={styles.kpi}>
@@ -109,7 +118,7 @@ const styles = StyleSheet.create({
   kicker: { fontFamily: font.medium, fontSize: 12, color: colors.muted },
   title: { fontFamily: font.bold, fontSize: 19, color: colors.ink },
   logout: { fontFamily: font.semibold, fontSize: 13, color: colors.muted },
-  content: { paddingHorizontal: 18, paddingBottom: 32 },
+  content: { paddingHorizontal: 18 },
 
   grid: { flexDirection: 'row', gap: 10 },
   kpi: { flex: 1, padding: 14 },

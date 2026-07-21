@@ -25,8 +25,7 @@ export default function Notiser() {
   const notifs = data ?? [];
 
   return (
-    <Screen>
-      <Text style={styles.h1}>Notiser</Text>
+    <Screen header={<Text style={styles.h1}>Notiser</Text>}>
       {notifs.length === 0 ? (
         <EmptyState icon="bell" title="Inga notiser än" body="Här landar nytt från din förening — nya aktiviteter, uppdrag och belöningar." />
       ) : (

@@ -26,14 +26,17 @@ export default function Butik() {
   const redeemedIds = data?.redeemedIds ?? new Set<string>();
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Text style={styles.h1}>Butik</Text>
-        <View style={styles.pointsChip}>
-          <Icon name="coin" size={17} color={colors.primary} />
-          <CountUp value={points} style={styles.pointsText} />
+    <Screen
+      header={
+        <View style={styles.header}>
+          <Text style={styles.h1}>Butik</Text>
+          <View style={styles.pointsChip}>
+            <Icon name="coin" size={17} color={colors.primary} />
+            <CountUp value={points} style={styles.pointsText} />
+          </View>
         </View>
-      </View>
+      }
+    >
 
       <View style={styles.grid}>
         {rewards.map((r, i) => {
