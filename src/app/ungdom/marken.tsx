@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { BadgeListRow } from '@/components/Badge';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
 import { groupBadges, useProfileData } from '@/hooks/useProfile';
@@ -53,7 +54,7 @@ export default function Marken() {
 
       {isLoading && <Text style={styles.empty}>Laddar märken …</Text>}
       {!isLoading && badges.length === 0 && (
-        <Text style={styles.empty}>Inga märken är upplagda för din förening än.</Text>
+        <EmptyState icon="trophy" title="Inga märken än" body="Din förening har inte lagt upp några märken. Hör av dig till en ledare." />
       )}
 
       {groupBadges(badges).map((group) => {

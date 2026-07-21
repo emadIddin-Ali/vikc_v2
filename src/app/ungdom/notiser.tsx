@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Icon, IconName } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useMarkNotificationsRead, useNotifications } from '@/hooks/useNotifications';
 import { ICON_TINT, colors, font, relativeDate } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
@@ -25,7 +26,7 @@ export default function Notiser() {
     <Screen>
       <Text style={styles.h1}>Notiser</Text>
       {notifs.length === 0 ? (
-        <Text style={styles.empty}>Inga notiser än.</Text>
+        <EmptyState icon="bell" title="Inga notiser än" body="Här landar nytt från din förening — nya aktiviteter, uppdrag och belöningar." />
       ) : (
         notifs.map((n) => (
           <Card key={n.id} style={[styles.card, { backgroundColor: n.read ? colors.white : colors.unreadBg }]}>
@@ -47,7 +48,6 @@ export default function Notiser() {
 
 const styles = StyleSheet.create({
   h1: { fontFamily: font.bold, fontSize: 22, color: colors.ink },
-  empty: { fontFamily: font.regular, fontSize: 13, color: colors.muted2, marginTop: 14 },
   card: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 13, marginTop: 12 },
   tile: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },

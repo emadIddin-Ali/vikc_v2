@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
 import { useAttendanceList, useProfileData } from '@/hooks/useProfile';
@@ -51,7 +52,7 @@ export default function Narvaro() {
 
       <Text style={styles.section}>Incheckningar</Text>
       {checkins.length === 0 ? (
-        <Text style={styles.empty}>Inga incheckningar än — checka in på gården för din första!</Text>
+        <EmptyState icon="pin" title="Inga incheckningar än" body="Varje gång du skannar QR-koden på gården hamnar besöket här." actionLabel="Checka in" onPress={() => router.push('/scan')} />
       ) : (
         checkins.map((c, i) => (
           <FadeIn key={c.id} index={i}>
@@ -92,6 +93,4 @@ const styles = StyleSheet.create({
   rowTitle: { fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
   rowDate: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted2, marginTop: 1 },
   rowPts: { fontFamily: font.bold, fontSize: 13, color: colors.primary },
-
-  empty: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted2, marginTop: 10 },
 });

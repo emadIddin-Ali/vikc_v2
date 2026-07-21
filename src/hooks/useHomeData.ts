@@ -41,10 +41,13 @@ export function useHomeData(foreningId: string | null, userId: string | undefine
           .eq('active', true)
           .order('sort', { ascending: true })
           .limit(2),
+        // "Senaste besök" and the card's checked-in-today check are about *you*.
+        // RLS lets a ledare read the whole förening's check-ins, so filter here.
         supabase
           .from('checkin')
           .select('id, title, awarded_points, created_at')
           .eq('forening_id', fid)
+          .eq('user_id', userId as string)
           .order('created_at', { ascending: false })
           .limit(3),
         supabase

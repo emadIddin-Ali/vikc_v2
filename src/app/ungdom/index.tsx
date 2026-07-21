@@ -7,12 +7,14 @@ import { Icon } from '@/components/Icon';
 import { Floaty } from '@/components/Floaty';
 import { Mascot } from '@/components/Mascot';
 import { Screen } from '@/components/Screen';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { CountUp } from '@/components/ui/CountUp';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
 import { useHomeData } from '@/hooks/useHomeData';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { fmtDateTime } from '@/lib/date';
+import { homePep, isToday } from '@/lib/pep';
 import {
   ICON_TINT, XP_MAX, activityTheme, colors, font, gradients, greetingForNow, levelName, radius, shadow, relativeDate,
 } from '@/theme/tokens';
@@ -42,6 +44,9 @@ export default function Hem() {
   const recent = data?.recent ?? [];
   const activities = data?.activities ?? [];
   const unread = data?.unreadCount ?? 0;
+  const visits = stats?.visits ?? 0;
+
+  const pep = homePep({ visits, streak, checkedInToday: isToday(recent[0]?.created_at) });
 
   const reduced = useReducedMotion();
   const xpAnim = useRef(new Animated.Value(0)).current;
@@ -74,32 +79,47 @@ export default function Hem() {
               </View>
             )}
           </Tappable>
-          <View style={styles.streak}>
-            <Icon name="fire" size={17} color={colors.orange} />
-            <Text style={styles.streakText}>{streak}</Text>
-          </View>
+          {/* A flame next to a 0 rewards nothing. Show it once there's a streak. */}
+          {streak > 0 && (
+            <View style={styles.streak}>
+              <Icon name="fire" size={17} color={colors.orange} />
+              <Text style={styles.streakText}>{streak}</Text>
+            </View>
+          )}
         </View>
       </View>
 
-      {/* Level card */}
-      <LinearGradient
-        colors={gradients.brand}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.levelCard}
-      >
-        <View style={styles.mascot} pointerEvents="none">
-          <Floaty>
-            <Mascot size={86} />
-          </Floaty>
-        </View>
-        <Text style={styles.levelKicker}>NIVÅ {level} · {levelName(level)}</Text>
-        <Text style={styles.pep}>Nice svit — fortsätt så!</Text>
-        <View style={styles.xpTrack}>
-          <Animated.View style={[styles.xpFill, { width: xpWidth }]} />
-        </View>
-        <Text style={styles.xpLeft}>{xpLeft} XP till nivå {level + 1}</Text>
-      </LinearGradient>
+      {/* Level card — the screen's one call to action. Says whether you've been
+          here today, and takes you to the scanner when you haven't. */}
+      <Tappable disabled={!pep.action} scale={0.985} onPress={() => router.push('/scan')}>
+        <LinearGradient
+          colors={gradients.brand}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.levelCard}
+        >
+          <View style={styles.mascot} pointerEvents="none">
+            <Floaty>
+              <Mascot size={86} mouth={pep.action ? 'smile' : 'grin'} />
+            </Floaty>
+          </View>
+          <Text style={styles.levelKicker}>NIVÅ {level} · {levelName(level)}</Text>
+          <Text style={styles.pep}>{pep.line}</Text>
+          <Text style={styles.pepHint}>{pep.hint}</Text>
+
+          <View style={styles.xpTrack}>
+            <Animated.View style={[styles.xpFill, { width: xpWidth }]} />
+          </View>
+          <Text style={styles.xpLeft}>{xpLeft} XP till nivå {level + 1}</Text>
+
+          {!!pep.action && (
+            <View style={styles.pepCta}>
+              <Icon name="camera" size={15} color={colors.ink} />
+              <Text style={styles.pepCtaText}>{pep.action}</Text>
+            </View>
+          )}
+        </LinearGradient>
+      </Tappable>
 
       {/* Points + Rewards CTA */}
       <View style={styles.duo}>
@@ -129,7 +149,7 @@ export default function Hem() {
       </View>
 
       {missions.length === 0 ? (
-        <Text style={styles.empty}>Inga uppdrag just nu.</Text>
+        <EmptyState icon="target" title="Inga uppdrag just nu" body="Ledarna lägger upp nya uppdrag här. Du samlar XP på dem vid sidan av incheckningarna." />
       ) : (
         missions.map((m, i) => (
           <Tappable key={m.id} onPress={() => router.push('/ungdom/uppdrag')}>
@@ -153,7 +173,7 @@ export default function Hem() {
         <Text style={styles.sectionHint}>Checka in för poäng</Text>
       </View>
       {activities.length === 0 ? (
-        <Text style={styles.empty}>Inga aktiviteter just nu.</Text>
+        <EmptyState icon="calendar" title="Inget uppsatt än" body="Kommande aktiviteter dyker upp här. Du kan checka in på gården ändå." />
       ) : (
         activities.map((a, i) => {
           const t = activityTheme(a.theme);
@@ -184,7 +204,7 @@ export default function Hem() {
       {/* Senaste besök */}
       <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Senaste besök</Text>
       {recent.length === 0 ? (
-        <Text style={styles.empty}>Inga besök än — checka in på gården!</Text>
+        <EmptyState icon="pin" title="Inga besök än" body="Dina incheckningar hamnar här, med poängen du fick för varje." />
       ) : (
         recent.map((r) => (
           <View key={r.id} style={styles.visitRow}>
@@ -232,7 +252,17 @@ const styles = StyleSheet.create({
   },
   mascot: { position: 'absolute', right: 10, bottom: -6 },
   levelKicker: { fontFamily: font.medium, fontSize: 12, color: 'rgba(255,255,255,0.85)', letterSpacing: 0.6 },
-  pep: { fontFamily: font.bold, fontSize: 30, lineHeight: 32, color: colors.white, maxWidth: 175, marginTop: 4 },
+  pep: { fontFamily: font.bold, fontSize: 27, lineHeight: 30, color: colors.white, maxWidth: 178, marginTop: 4 },
+  pepHint: {
+    fontFamily: font.medium, fontSize: 12, lineHeight: 16.5,
+    color: 'rgba(255,255,255,0.88)', maxWidth: 185, marginTop: 6,
+  },
+  pepCta: {
+    flexDirection: 'row', alignItems: 'center', gap: 7, alignSelf: 'flex-start',
+    marginTop: 13, backgroundColor: colors.gold, borderRadius: radius.pill,
+    paddingVertical: 9, paddingHorizontal: 15,
+  },
+  pepCtaText: { fontFamily: font.bold, fontSize: 13.5, color: colors.ink },
   xpTrack: {
     marginTop: 16, height: 12, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.28)',
     maxWidth: 185, overflow: 'hidden',
@@ -273,7 +303,5 @@ const styles = StyleSheet.create({
   visitTitle: { fontFamily: font.semibold, fontSize: 13, color: colors.ink },
   visitDate: { fontFamily: font.regular, fontSize: 11, color: colors.muted2 },
   visitPts: { fontFamily: font.bold, fontSize: 12.5, color: colors.primary },
-
-  empty: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted2, marginTop: 11 },
   foreningTag: { fontFamily: font.medium, fontSize: 11, color: colors.faint, textAlign: 'center', marginTop: 22 },
 });
