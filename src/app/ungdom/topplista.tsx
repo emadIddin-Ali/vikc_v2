@@ -4,6 +4,7 @@ import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 import { useRefreshOnFocus } from '@/hooks/useRefreshOnFocus';
+import { dayHeading } from '@/lib/date';
 import { colors, fmt, font } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -15,8 +16,15 @@ export default function Topplista() {
   const fid = activeMembership?.forening_id ?? null;
   const { data, refetch } = useLeaderboard(fid);
   useRefreshOnFocus(refetch);
-  const entries = data ?? [];
+  const entries = data?.entries ?? [];
+  const forra = data?.forra ?? [];
+  const sasong = data?.sasong ?? null;
   const forening = activeMembership?.forening?.name ?? '';
+
+  // Säsongen löper mellan två marknader; slutdatumet är nästa marknads öppning.
+  const sasongText = sasong?.slut
+    ? `Säsongen avgörs ${dayHeading(new Date(sasong.slut)).toLowerCase()} · ${forening}`
+    : `Den här säsongen · ${forening}`;
 
   const top3 = entries.slice(0, 3);
   const podium = [top3[1], top3[0], top3[2]]; // display order: 2nd · 1st · 3rd
@@ -34,7 +42,7 @@ export default function Topplista() {
             <Text style={styles.h1}>Topplista</Text>
             <Icon name="trophy" size={20} color="#ff9500" />
           </View>
-          <Text style={styles.sub}>Den här veckan · {forening}</Text>
+          <Text style={styles.sub}>{sasongText}</Text>
         </View>
       }
     >
@@ -56,7 +64,7 @@ export default function Topplista() {
               </View>
               <Text style={styles.podName}>{firstName(p.name)}</Text>
               <View style={[styles.podBar, { height: barH[i], backgroundColor: barColor[i] }]}>
-                <Text style={styles.podPts}>{p.points}</Text>
+                <Text style={styles.podPts}>{p.xp}</Text>
               </View>
             </View>
           ) : (
@@ -76,10 +84,30 @@ export default function Topplista() {
               {e.name}
               {e.is_me ? ' (du)' : ''}
             </Text>
-            <Text style={styles.rowPts}>{fmt(e.points)}</Text>
+            <Text style={styles.rowPts}>{fmt(e.xp)} XP</Text>
           </View>
         ))}
       </View>
+
+      <Text style={styles.foot}>
+        Rankningen räknar XP du samlat den här säsongen. Att handla i butiken kostar dig ingen placering.
+      </Text>
+
+      {forra.length > 0 && (
+        <>
+          <Text style={styles.section}>Förra säsongen</Text>
+          {forra.map((r) => (
+            <View key={`${r.rank}-${r.name}`} style={styles.forraRow}>
+              <Text style={styles.forraRank}>{r.rank}</Text>
+              <View style={[styles.rowAvatar, { backgroundColor: r.avatar_color }]}>
+                <Text style={styles.rowInit}>{initialOf(r.name)}</Text>
+              </View>
+              <Text style={styles.rowName}>{r.name}</Text>
+              <Text style={styles.forraXp}>{fmt(r.xp)} XP</Text>
+            </View>
+          ))}
+        </>
+      )}
     </Screen>
   );
 }
@@ -116,4 +144,13 @@ const styles = StyleSheet.create({
   rowInit: { fontFamily: font.semibold, fontSize: 13, color: colors.white },
   rowName: { flex: 1, fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
   rowPts: { fontFamily: font.bold, fontSize: 13, color: colors.primary },
+
+  foot: { fontFamily: font.regular, fontSize: 11.5, color: colors.faint, textAlign: 'center', marginTop: 18, lineHeight: 16 },
+  section: { fontFamily: font.bold, fontSize: 15, color: colors.ink, marginTop: 22 },
+  forraRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 9,
+    paddingVertical: 10, paddingHorizontal: 14, borderRadius: 16, backgroundColor: colors.tintYellow,
+  },
+  forraRank: { fontFamily: font.bold, fontSize: 13, color: colors.ink, width: 20 },
+  forraXp: { fontFamily: font.bold, fontSize: 12.5, color: colors.ink },
 });

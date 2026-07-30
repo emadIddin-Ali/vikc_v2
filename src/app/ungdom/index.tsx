@@ -1,8 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
+import { CheckoutBanner } from '@/components/CheckoutBanner';
 import { Icon } from '@/components/Icon';
 import { Floaty } from '@/components/Floaty';
 import { Mascot } from '@/components/Mascot';
@@ -11,6 +12,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { CountUp } from '@/components/ui/CountUp';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
+import { Stjarnkort } from '@/features/larare/Stjarnkort';
+import { VeckoKort } from '@/features/vecka/VeckoKort';
 import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { useHomeData } from '@/hooks/useHomeData';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
@@ -35,7 +38,9 @@ export default function Hem() {
   const level = stats?.level ?? 1;
   const xp = stats?.xp ?? 0;
   const points = stats?.points ?? 0;
-  const streak = stats?.streak ?? 0;
+  // Sviten räknas i veckor: föreningen är öppen några kvällar i veckan, så en
+  // daglig svit gick aldrig att hålla och siffran blev meningslös.
+  const streak = stats?.week_streak ?? 0;
   const xpPct = Math.min(100, Math.round((xp / XP_MAX) * 100));
   const xpLeft = Math.max(0, XP_MAX - xp);
 
@@ -65,9 +70,12 @@ export default function Hem() {
     <Screen>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ flexShrink: 1 }}>
-          <Text style={styles.greeting}>{greetingForNow()}</Text>
-          <Text style={styles.name}>{name}</Text>
+        <View style={styles.headerLeft}>
+          {!!forening?.logo_url && <Image source={{ uri: forening.logo_url }} style={styles.logo} />}
+          <View style={{ flexShrink: 1 }}>
+            <Text style={styles.greeting}>{greetingForNow()}</Text>
+            <Text style={styles.name}>{name}</Text>
+          </View>
         </View>
         <View style={styles.headerRight}>
           <Tappable style={styles.bell} scale={0.88} hitSlop={6} onPress={() => router.push('/ungdom/topplista')}>
@@ -90,6 +98,10 @@ export default function Hem() {
           )}
         </View>
       </View>
+
+      {/* If you're checked in on a check-out activity, earning the points is one
+          tap away — surface it above everything else. */}
+      <CheckoutBanner foreningId={foreningId} style={{ marginTop: 14 }} />
 
       {/* Level card — the screen's one call to action. Says whether you've been
           here today, and takes you to the scanner when you haven't. */}
@@ -141,6 +153,12 @@ export default function Hem() {
           </View>
         </Tappable>
       </View>
+
+      {/* Din vecka — appens puls, nollställs på måndagar */}
+      <VeckoKort foreningId={foreningId} />
+
+      {/* Min klass — tomt (och osynligt) för föreningar utan lärarroll */}
+      <Stjarnkort />
 
       {/* Dagens uppdrag */}
       <View style={styles.sectionHeader}>
@@ -229,6 +247,8 @@ export default function Hem() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 6 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
+  logo: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.white },
   greeting: { fontFamily: font.medium, fontSize: 12.5, color: colors.muted },
   name: { fontFamily: font.bold, fontSize: 20, color: colors.ink },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },

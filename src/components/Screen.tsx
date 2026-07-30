@@ -47,6 +47,8 @@ export function Screen({
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: pad, paddingBottom: insets.bottom + 28 }}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           refreshControl={
             refreshable ? (
               <RefreshControl

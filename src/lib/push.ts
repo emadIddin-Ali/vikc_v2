@@ -46,3 +46,15 @@ export async function registerPushToken(userId: string): Promise<void> {
     // Expo Go / no push support in this runtime — safely ignore so the app still runs.
   }
 }
+
+/**
+ * Remove this user's push token. Called before sign-out so the next person on a
+ * shared device doesn't keep receiving the previous user's notifications.
+ */
+export async function unregisterPushToken(userId: string): Promise<void> {
+  try {
+    await supabase.from('push_token').delete().eq('user_id', userId);
+  } catch {
+    // Best-effort; never block sign-out on this.
+  }
+}

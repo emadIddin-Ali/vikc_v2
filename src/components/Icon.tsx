@@ -10,7 +10,7 @@ export type IconName =
   | 'camera' | 'pin' | 'check' | 'calendar' | 'trophy' | 'map' | 'locate'
   | 'arrowL' | 'chev' | 'palette' | 'heart' | 'book' | 'soccer' | 'moon'
   | 'diamond' | 'shirt' | 'ticket' | 'film' | 'gamepad' | 'sparkles'
-  | 'coffee' | 'wrench' | 'shield' | 'org';
+  | 'coffee' | 'wrench' | 'shield' | 'org' | 'star' | 'starO';
 
 type Props = {
   name: IconName;
@@ -270,6 +270,20 @@ export function Icon({ name, size = 22, color = '#2c2340', opacity = 1 }: Props)
         <Svg {...svg}>
           <Path {...stroke} d="M12 3l7 2.6v5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9v-5z" />
           <Path {...stroke} d="M9 12l2 2 4-4" />
+        </Svg>
+      );
+    // Stars are the teacher role's unit of praise — filled when earned,
+    // outlined for the levels the student did not reach.
+    case 'star':
+      return (
+        <Svg {...svg}>
+          <Path fill={color} d="M12 3.2l2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.8-5.4 2.8 1-6-4.4-4.3 6.1-.9z" />
+        </Svg>
+      );
+    case 'starO':
+      return (
+        <Svg {...svg}>
+          <Path {...stroke} d="M12 3.2l2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.8-5.4 2.8 1-6-4.4-4.3 6.1-.9z" />
         </Svg>
       );
     case 'org':

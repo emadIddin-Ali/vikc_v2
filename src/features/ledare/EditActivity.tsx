@@ -25,6 +25,7 @@ export function EditActivity({ activity, onClose }: { activity: Activity; onClos
   const [dailyLimit, setDailyLimit] = useState(String(activity.daily_limit));
   const [radiusM, setRadiusM] = useState(activity.radius_m != null ? String(activity.radius_m) : '');
   const [requiresPhoto, setRequiresPhoto] = useState(activity.requires_photo);
+  const [requiresCheckout, setRequiresCheckout] = useState(activity.requires_checkout);
 
   const onSave = () => {
     const patch: Record<string, unknown> = {
@@ -34,6 +35,7 @@ export function EditActivity({ activity, onClose }: { activity: Activity; onClos
       daily_limit: Math.max(parseInt(dailyLimit) || 1, 1),
       radius_m: radiusM ? parseInt(radiusM) : null,
       requires_photo: activity.checkin_mode === 'open' ? requiresPhoto : false,
+      requires_checkout: requiresCheckout,
     };
     if (!activity.continuous) {
       patch.starts_at = startsAt ? startsAt.toISOString() : null;
@@ -64,7 +66,7 @@ export function EditActivity({ activity, onClose }: { activity: Activity; onClos
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets>
             <TextField placeholder="Namn" value={title} onChangeText={setTitle} style={styles.input} />
             <TextField placeholder="Poäng" value={points} onChangeText={setPoints} keyboardType="number-pad" style={styles.input} />
 
@@ -85,6 +87,14 @@ export function EditActivity({ activity, onClose }: { activity: Activity; onClos
                 <Switch value={requiresPhoto} onValueChange={setRequiresPhoto} trackColor={{ true: colors.primary, false: '#d9d2ec' }} thumbColor={colors.white} />
               </View>
             )}
+
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={styles.switchLabel}>Kräv utcheckning</Text>
+                <Text style={styles.switchHint}>Poängen ges först vid utcheckning.</Text>
+              </View>
+              <Switch value={requiresCheckout} onValueChange={setRequiresCheckout} trackColor={{ true: colors.primary, false: '#d9d2ec' }} thumbColor={colors.white} />
+            </View>
 
             <Text style={styles.label}>Tema</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.themes}>
@@ -126,8 +136,9 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 18, paddingBottom: 8 },
   input: { marginTop: 10 },
   label: { fontFamily: font.semibold, fontSize: 12.5, color: colors.ink, marginTop: 14, marginBottom: 8 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 },
   switchLabel: { fontFamily: font.medium, fontSize: 13, color: colors.ink },
+  switchHint: { fontFamily: font.regular, fontSize: 11, color: colors.muted2, marginTop: 2, lineHeight: 15 },
   themes: { gap: 9, paddingVertical: 4 },
   themeCol: { width: 64, alignItems: 'center' },
   swatch: { width: '100%', height: 52, borderRadius: 13, borderWidth: 2.5, alignItems: 'flex-start' },

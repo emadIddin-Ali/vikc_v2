@@ -63,6 +63,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
   const [startsAt, setStartsAt] = useState<Date | null>(null);
   const [mode, setMode] = useState<'qr' | 'open'>('qr');
   const [requiresPhoto, setRequiresPhoto] = useState(false);
+  const [requiresCheckout, setRequiresCheckout] = useState(false);
   const [theme, setTheme] = useState('fika');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -141,6 +142,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
         durationMin: kind === 'event' && durationMin ? parseInt(durationMin) : null,
         dailyLimit: parseInt(dailyLimit) || 1,
         radiusM: activityRadius ? parseInt(activityRadius) : null,
+        requiresCheckout,
       },
       {
         onSuccess: () => {
@@ -150,6 +152,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
           setStartsAt(null);
           setMode('qr');
           setRequiresPhoto(false);
+          setRequiresCheckout(false);
           setTheme('fika');
           setCoords(null);
           setDurationMin('');
@@ -199,6 +202,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
             <View style={styles.badges}>
               <Badge text={a.checkin_mode === 'open' ? 'Öppen' : 'QR'} ink={t.ink} />
               {a.requires_photo && <Badge text="Foto" ink={t.ink} />}
+              {a.requires_checkout && <Badge text="Utcheckning" ink={t.ink} />}
             </View>
           </View>
         </Pressable>
@@ -217,7 +221,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
       <View style={styles.info}>
         <Text style={styles.infoTitle}>Aktivitet vs uppdrag</Text>
         <Text style={styles.infoText}>
-          En <Text style={styles.b}>aktivitet</Text> är ett tillfälle ungdomarna checkar in på (QR eller plats) för poäng — t.ex. "Kvällsfik" eller "Besök moskén". För återkommande <Text style={styles.b}>utmaningar</Text> (t.ex. "Besök 5 gånger") använder du fliken Uppdrag.
+          En <Text style={styles.b}>aktivitet</Text> är ett tillfälle ungdomarna checkar in på (QR eller plats) för poäng — t.ex. ”Kvällsfik” eller ”Besök moskén”. För återkommande <Text style={styles.b}>utmaningar</Text> (t.ex. ”Besök 5 gånger”) använder du fliken Uppdrag.
         </Text>
       </View>
 
@@ -312,6 +316,14 @@ export function Aktiviteter({ fid }: { fid: string }) {
           keyboardType="number-pad"
           style={{ marginTop: 8 }}
         />
+
+        <View style={styles.switchRow}>
+          <View style={{ flex: 1, paddingRight: 12 }}>
+            <Text style={styles.switchLabel}>Kräv utcheckning</Text>
+            <Text style={styles.switchHint}>Poängen ges först när ungdomen checkar ut — de måste stanna kvar.</Text>
+          </View>
+          <Switch value={requiresCheckout} onValueChange={setRequiresCheckout} trackColor={{ true: colors.primary, false: '#d9d2ec' }} thumbColor={colors.white} />
+        </View>
 
         <View style={styles.labelRow}>
           <Text style={styles.label}>Incheckningsplats (valfri)</Text>
@@ -441,8 +453,9 @@ const styles = StyleSheet.create({
   },
   timeText: { fontFamily: font.semibold, fontSize: 13, color: colors.primary },
 
-  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 },
   switchLabel: { fontFamily: font.medium, fontSize: 13, color: colors.ink },
+  switchHint: { fontFamily: font.regular, fontSize: 11, color: colors.muted2, marginTop: 2, lineHeight: 15 },
 
   locBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, paddingVertical: 12,

@@ -20,6 +20,9 @@ export const supabase = createClient(url ?? '', anon ?? '', {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // PKCE: OAuth (Google) redirects back with a ?code we exchange manually.
+    // The code verifier is kept in AsyncStorage by this same client instance.
+    flowType: 'pkce',
   },
 });
 

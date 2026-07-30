@@ -124,6 +124,10 @@ export const XP_MAX = 1000;
 export const LEVEL_NAMES = [
   'Nyfiken', 'Upptäckare', 'Äventyrare', 'Stigfinnare', 'Utforskare',
   'Rävstig', 'Nivåryttare', 'Stjärnjägare', 'Kometryttare', 'Legend',
+  // Nivå 11–20: utan dem fastnade alla på "Legend" och titeln slutade säga
+  // något så fort någon spelat en termin.
+  'Vägvisare', 'Förebild', 'Mästare', 'Stormästare', 'Fyrtorn',
+  'Urkraft', 'Norrsken', 'Polstjärna', 'Odödlig', 'Evig legend',
 ];
 
 export function levelName(level: number): string {

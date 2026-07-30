@@ -42,6 +42,7 @@ export function useMissions(foreningId: string | null, userId: string | undefine
   });
 }
 
+/** Lös in ett Mål ('goal') — progressen måste ha nått målet. */
 export function useClaimMission() {
   const qc = useQueryClient();
   const { session, activeMembership } = useAuth();
@@ -55,6 +56,28 @@ export function useClaimMission() {
     },
     onSuccess: (data) => {
       toast(`+${data.awarded_xp} XP inlöst!`);
+      playSfx('coin');
+      invalidateMemberData(qc);
+      if (userId && foreningId) announceNewBadges(userId, foreningId);
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
+/** Markera en Uppgift ('task') klar — självrapporterad, ger XP direkt. */
+export function useCompleteTask() {
+  const qc = useQueryClient();
+  const { session, activeMembership } = useAuth();
+  const userId = session?.user.id;
+  const foreningId = activeMembership?.forening_id;
+  return useMutation<{ awarded_xp: number }, Error, string>({
+    mutationFn: async (missionId) => {
+      const { data, error } = await supabase.rpc('complete_task', { p_mission_id: missionId });
+      if (error) throw new Error(error.message);
+      return data as { awarded_xp: number };
+    },
+    onSuccess: (data) => {
+      toast(`Klart! +${data.awarded_xp} XP`);
       playSfx('coin');
       invalidateMemberData(qc);
       if (userId && foreningId) announceNewBadges(userId, foreningId);

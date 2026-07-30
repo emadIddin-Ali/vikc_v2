@@ -19,6 +19,8 @@ export default function Index() {
   if (!role) return <Redirect href="/auth/join" />;
   if (role === 'ledare') return <Redirect href="/ledare" />;
   if (role === 'kommun') return <Redirect href="/kommun" />;
+  if (role === 'foralder') return <Redirect href="/foralder" />;
+  if (role === 'larare') return <Redirect href="/larare" />;
   return <Redirect href="/ungdom" />;
 }
 

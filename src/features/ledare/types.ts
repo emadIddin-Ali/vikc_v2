@@ -1,1 +1,1 @@
-export type LedareTab = 'oversikt' | 'aktiviteter' | 'narvaro' | 'uppdrag' | 'beloningar';
+export type LedareTab = 'oversikt' | 'aktiviteter' | 'narvaro' | 'uppdrag' | 'beloningar' | 'klasser' | 'forening';

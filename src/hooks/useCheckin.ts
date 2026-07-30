@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invalidateMemberData } from '@/lib/queries';
 import { supabase } from '@/lib/supabase';
-import type { CheckinResult, YouthOpenActivity } from '@/lib/types';
+import type { CheckinResult, OpenSession, YouthOpenActivity } from '@/lib/types';
 
 export type CheckinVars = { token: string; lat: number | null; lng: number | null; accuracy: number | null };
 
@@ -47,6 +47,42 @@ export function useOpenCheckin() {
       return data as CheckinResult;
     },
     onSuccess: () => invalidateMemberData(qc),
+  });
+}
+
+export type CheckoutVars = { activityId: string; lat: number | null; lng: number | null; accuracy: number | null };
+
+/** Check out of an open session — the server awards the points now (geofence verified). */
+export function useCheckout() {
+  const qc = useQueryClient();
+  return useMutation<CheckinResult, Error, CheckoutVars>({
+    mutationFn: async ({ activityId, lat, lng, accuracy }) => {
+      const { data, error } = await supabase.rpc('check_out', {
+        p_activity: activityId,
+        p_lat: lat,
+        p_lng: lng,
+        p_accuracy: accuracy,
+      });
+      if (error) throw new Error(error.message);
+      return data as CheckinResult;
+    },
+    onSuccess: () => {
+      invalidateMemberData(qc);
+      qc.invalidateQueries({ queryKey: ['open-checkins'] });
+    },
+  });
+}
+
+/** Open sessions the youth still has to check out of. */
+export function useMyOpenCheckins(foreningId: string | null) {
+  return useQuery<OpenSession[]>({
+    queryKey: ['open-checkins', foreningId],
+    enabled: !!foreningId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('my_open_checkins', { p_forening: foreningId });
+      if (error) throw new Error(error.message);
+      return (data as OpenSession[]) ?? [];
+    },
   });
 }
 

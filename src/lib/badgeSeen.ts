@@ -29,6 +29,10 @@ async function writeSeen(userId: string, foreningId: string, codes: string[]): P
 }
 
 async function fetchUnlocked(foreningId: string): Promise<BadgeRow[]> {
+  // Unlocks are computed, so there is no event to hang the XP reward on.
+  // sync_badge_xp books any newly unlocked badge and pays out its XP; it is
+  // idempotent, so calling it on every badge check is safe.
+  await Promise.resolve(supabase.rpc('sync_badge_xp', { p_forening: foreningId })).catch(() => {});
   const { data } = await supabase.rpc('youth_badges', { p_forening: foreningId });
   return ((data as BadgeRow[]) ?? []).filter((b) => b.unlocked);
 }

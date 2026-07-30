@@ -6,6 +6,8 @@ import { Icon } from '@/components/Icon';
 import { useRefreshAll } from '@/hooks/useRefreshAll';
 import { Aktiviteter } from '@/features/ledare/Aktiviteter';
 import { Beloningar } from '@/features/ledare/Beloningar';
+import { ForeningInfo } from '@/features/ledare/ForeningInfo';
+import { Klasser } from '@/features/ledare/Klasser';
 import { Narvaro } from '@/features/ledare/Narvaro';
 import { Oversikt } from '@/features/ledare/Oversikt';
 import { Uppdrag } from '@/features/ledare/Uppdrag';
@@ -19,6 +21,8 @@ const TABS: { key: LedareTab; label: string }[] = [
   { key: 'narvaro', label: 'Närvaro' },
   { key: 'uppdrag', label: 'Uppdrag' },
   { key: 'beloningar', label: 'Belöningar' },
+  { key: 'klasser', label: 'Klasser' },
+  { key: 'forening', label: 'Förening' },
 ];
 
 export default function LedareHome() {
@@ -85,6 +89,7 @@ export default function LedareHome() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -99,6 +104,8 @@ export default function LedareHome() {
         {fid && tab === 'narvaro' && <Narvaro fid={fid} />}
         {fid && tab === 'uppdrag' && <Uppdrag fid={fid} />}
         {fid && tab === 'beloningar' && <Beloningar fid={fid} />}
+        {fid && tab === 'klasser' && <Klasser fid={fid} />}
+        {fid && tab === 'forening' && <ForeningInfo fid={fid} />}
       </ScrollView>
     </View>
   );

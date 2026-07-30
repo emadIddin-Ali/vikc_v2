@@ -1,8 +1,10 @@
+import { CheckoutBanner } from '@/components/CheckoutBanner';
 import { Confetti } from '@/components/Confetti';
 import { Floaty } from '@/components/Floaty';
 import { Icon, IconName } from '@/components/Icon';
 import { MascotCelebration } from '@/components/MascotCelebration';
 import { useCheckin, useOpenCheckin, useYouthOpenActivities } from '@/hooks/useCheckin';
+import { useCheckInChild, useMyChildren, useOpenCheckinChild } from '@/hooks/useParent';
 import { claimNewBadges } from '@/lib/badgeSeen';
 import { haptics } from '@/lib/haptics';
 import { capturePhoto, uploadCheckinPhoto } from '@/lib/photo';
@@ -16,7 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View,
@@ -42,9 +44,19 @@ export default function Scan() {
   const checkin = useCheckin();
   const openCheckin = useOpenCheckin();
 
+  // A parent checking in a child arrives as /scan?child=<id>. Then the check-in
+  // credits the child instead of the caller, and there's no youth checkout flow.
+  const params = useLocalSearchParams<{ child?: string }>();
+  const childId = typeof params.child === 'string' ? params.child : undefined;
+  const isChild = !!childId;
+  const checkinChild = useCheckInChild();
+  const openCheckinChild = useOpenCheckinChild();
+
   const forening = activeMembership?.forening;
   const foreningId = activeMembership?.forening_id ?? null;
   const userId = session?.user.id;
+  const { data: myChildren } = useMyChildren(isChild ? foreningId : null);
+  const childName = myChildren?.find((c) => c.id === childId)?.display_name ?? 'barn';
   const venueLat = forening?.lat ?? null;
   const venueLng = forening?.lng ?? null;
   const radiusM = forening?.geofence_radius_m ?? 120;
@@ -64,9 +76,11 @@ export default function Scan() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const handledRef = useRef(false);
 
+  // Only the dev-only "Simulera skanning" button consumes this list, and it
+  // carries qr_token — so it must never be fetched into a production client.
   const { data: activities } = useQuery<Activity[]>({
     queryKey: ['scan-activities', foreningId],
-    enabled: !!foreningId,
+    enabled: !!foreningId && __DEV__,
     queryFn: async () => {
       const { data } = await supabase
         .from('activity')
@@ -128,7 +142,7 @@ export default function Scan() {
   }, [mode]);
 
   const inRange = geo === 'inrange';
-  const busy = checkin.isPending || openCheckin.isPending || busyId !== null;
+  const busy = checkin.isPending || openCheckin.isPending || checkinChild.isPending || openCheckinChild.isPending || busyId !== null;
 
   /** Show the success screen, and look up any badges the check-in just unlocked. */
   const onCheckedIn = useCallback(
@@ -136,7 +150,8 @@ export default function Scan() {
       setResult(data);
       setMode('success');
       setNewBadges([]);
-      if (userId && foreningId) {
+      // Children don't have badges yet, so only the youth's own check-in looks them up.
+      if (!isChild && userId && foreningId) {
         claimNewBadges(userId, foreningId)
           .then(setNewBadges)
           .catch(() => {
@@ -144,7 +159,7 @@ export default function Scan() {
           });
       }
     },
-    [userId, foreningId],
+    [userId, foreningId, isChild],
   );
 
   const runScan = useCallback(
@@ -166,18 +181,18 @@ export default function Scan() {
       }
       handledRef.current = true;
       const coords = simulateOnSite ? { lat: venueLat, lng: venueLng } : deviceCoords;
-      checkin.mutate(
-        { token, lat: coords?.lat ?? null, lng: coords?.lng ?? null, accuracy: simulateOnSite ? null : accuracy },
-        {
-          onSuccess: onCheckedIn,
-          onError: (e) => {
-            handledRef.current = false;
-            Alert.alert('Kunde inte checka in', e.message);
-          },
+      const vars = { token, lat: coords?.lat ?? null, lng: coords?.lng ?? null, accuracy: simulateOnSite ? null : accuracy };
+      const handlers = {
+        onSuccess: onCheckedIn,
+        onError: (e: Error) => {
+          handledRef.current = false;
+          Alert.alert('Kunde inte checka in', e.message);
         },
-      );
+      };
+      if (isChild) checkinChild.mutate({ childId: childId as string, ...vars }, handlers);
+      else checkin.mutate(vars, handlers);
     },
-    [busy, inRange, simulateOnSite, venueLat, venueLng, deviceCoords, accuracy, checkin, onCheckedIn],
+    [busy, inRange, simulateOnSite, venueLat, venueLng, deviceCoords, accuracy, checkin, checkinChild, isChild, childId, onCheckedIn],
   );
 
   const runOpenCheckin = async (a: YouthOpenActivity) => {
@@ -199,13 +214,13 @@ export default function Scan() {
           ? { lat: a.lat, lng: a.lng }
           : { lat: venueLat, lng: venueLng }
         : deviceCoords;
-      openCheckin.mutate(
-        { activityId: a.id, lat: coords?.lat ?? null, lng: coords?.lng ?? null, accuracy: simulateOnSite ? null : accuracy, photoUrl },
-        {
-          onSuccess: onCheckedIn,
-          onError: (e) => Alert.alert('Kunde inte checka in', e.message),
-        },
-      );
+      const openVars = { activityId: a.id, lat: coords?.lat ?? null, lng: coords?.lng ?? null, accuracy: simulateOnSite ? null : accuracy, photoUrl };
+      const handlers = {
+        onSuccess: onCheckedIn,
+        onError: (e: Error) => Alert.alert('Kunde inte checka in', e.message),
+      };
+      if (isChild) openCheckinChild.mutate({ childId: childId as string, ...openVars }, handlers);
+      else openCheckin.mutate(openVars, handlers);
     } catch (e) {
       Alert.alert('Fel', e instanceof Error ? e.message : 'Något gick fel');
     } finally {
@@ -228,23 +243,32 @@ export default function Scan() {
   }, []);
 
   if (mode === 'success' && result) {
+    const pending = result.pending === true;
+    const checkedOut = result.action === 'checked_out';
     return (
       <LinearGradient colors={gradients.success} style={styles.celebrate}>
         <MascotCelebration size={114} mascotSize={66} />
-        <Text style={styles.celebrateTitle}>Incheckad!</Text>
-        <Text style={styles.celebrateSub}>{result.title} · {result.forening}</Text>
-        <View style={styles.chips}>
-          <View style={styles.chip}>
-            <Text style={styles.chipNum}>+{result.awarded_xp}</Text>
-            <Text style={styles.chipLabel}>XP</Text>
+        <Text style={styles.celebrateTitle}>{checkedOut ? 'Utcheckad!' : 'Incheckad!'}</Text>
+        <Text style={styles.celebrateSub}>{result.child ? `${result.child} · ` : ''}{result.title} · {result.forening}</Text>
+        {pending ? (
+          <Text style={styles.pendingNote}>Kom ihåg att checka ut när du går — då får du poängen.</Text>
+        ) : (
+          <View style={styles.chips}>
+            <View style={styles.chip}>
+              <Text style={styles.chipNum}>+{result.awarded_xp}</Text>
+              <Text style={styles.chipLabel}>XP</Text>
+            </View>
+            <View style={styles.chip}>
+              <Text style={styles.chipNum}>+{result.awarded_points}</Text>
+              <Text style={styles.chipLabel}>poäng</Text>
+            </View>
           </View>
-          <View style={styles.chip}>
-            <Text style={styles.chipNum}>+{result.awarded_points}</Text>
-            <Text style={styles.chipLabel}>poäng</Text>
-          </View>
-        </View>
-        <Pressable style={[styles.celebrateBtn, { backgroundColor: colors.white }]} onPress={step(() => (result.leveled_up ? setMode('levelup') : afterLevel()))}>
-          <Text style={[styles.celebrateBtnText, { color: colors.green2 }]}>Fortsätt</Text>
+        )}
+        <Pressable
+          style={[styles.celebrateBtn, { backgroundColor: colors.white }]}
+          onPress={step(() => (pending ? finish() : result.leveled_up ? setMode('levelup') : afterLevel()))}
+        >
+          <Text style={[styles.celebrateBtnText, { color: colors.green2 }]}>{pending ? 'Klar' : 'Fortsätt'}</Text>
         </Pressable>
       </LinearGradient>
     );
@@ -319,7 +343,7 @@ export default function Scan() {
         <Pressable style={styles.backBtn} onPress={finish} hitSlop={8}>
           <Icon name="arrowL" size={18} color={colors.white} />
         </Pressable>
-        <Text style={styles.headerTitle}>Checka in</Text>
+        <Text style={styles.headerTitle}>{isChild ? `Checka in ${childName}` : 'Checka in'}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 20 }} showsVerticalScrollIndicator={false}>
@@ -333,6 +357,8 @@ export default function Scan() {
           </View>
           {geo === 'searching' && <ActivityIndicator color="#7ea6ff" />}
         </View>
+
+        {!isChild && <CheckoutBanner foreningId={foreningId} simulate={simulateOnSite} tone="dark" style={{ marginTop: 12 }} />}
 
         {/* QR viewfinder */}
         <View style={styles.viewfinderWrap}>
@@ -363,7 +389,7 @@ export default function Scan() {
           </Pressable>
         )}
 
-        {qrActivities.length > 0 && (
+        {__DEV__ && qrActivities.length > 0 && (
           <Pressable
             disabled={!inRange || busy}
             onPress={() => runScan(qrActivities[Math.floor(Math.random() * qrActivities.length)].qr_token)}
@@ -458,6 +484,7 @@ const styles = StyleSheet.create({
   celebrate: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
   celebrateTitle: { fontFamily: font.bold, fontSize: 26, color: colors.white, marginTop: 24 },
   celebrateSub: { fontFamily: font.medium, fontSize: 14, color: 'rgba(255,255,255,0.92)', marginTop: 4, textAlign: 'center' },
+  pendingNote: { fontFamily: font.medium, fontSize: 13.5, color: 'rgba(255,255,255,0.95)', marginTop: 22, textAlign: 'center', lineHeight: 20, maxWidth: 280 },
   chips: { flexDirection: 'row', gap: 14, marginTop: 26 },
   chip: { backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 18, paddingVertical: 16, paddingHorizontal: 22, alignItems: 'center', minWidth: 92 },
   chipNum: { fontFamily: font.bold, fontSize: 28, color: colors.white },

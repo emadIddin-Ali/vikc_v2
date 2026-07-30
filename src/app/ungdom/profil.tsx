@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
 import { BadgeCell } from '@/components/Badge';
 import { Card } from '@/components/Card';
 import { Icon, IconName } from '@/components/Icon';
@@ -11,16 +11,52 @@ import { CountUp } from '@/components/ui/CountUp';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { Tappable } from '@/components/ui/Tappable';
+import { AnslutModal } from '@/features/join/AnslutModal';
+import { useElevKlasser, useNekaKlassplacering } from '@/hooks/useLarare';
 import { highlightBadges, useProfileData } from '@/hooks/useProfile';
 import { playSfx, useSfxStore } from '@/lib/sfx';
+import { roleLabel } from '@/lib/roles';
+import { klassWhen } from '@/lib/stars';
 import { useBrandGradient } from '@/hooks/useBrandGradient';
-import { colors, font, gradients, levelName, radius, shadow } from '@/theme/tokens';
+import { colors, font, levelName, radius, shadow } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function Profil() {
   const brand = useBrandGradient();
   const router = useRouter();
-  const { profile, session, memberships, activeMembership, setActiveForeningId, signOut } = useAuth();
+  const { profile, session, memberships, activeMembership, setActiveForeningId, signOut, deleteAccount } = useAuth();
+  const [deleting, setDeleting] = useState(false);
+  const [anslutOpen, setAnslutOpen] = useState(false);
+  const { data: klasser } = useElevKlasser(true);
+  const lamnaKlass = useNekaKlassplacering();
+
+  const confirmLeave = (id: string, namn: string) => {
+    Alert.alert('Lämna klassen', `Vill du gå ur ${namn}? Läraren får veta. Dina stjärnor finns kvar.`, [
+      { text: 'Avbryt', style: 'cancel' },
+      { text: 'Lämna', style: 'destructive', onPress: () => lamnaKlass.mutate(id) },
+    ]);
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      'Radera konto',
+      'Detta tar bort ditt konto och all din data (poäng, incheckningar, foton) permanent. Det går inte att ångra.',
+      [
+        { text: 'Avbryt', style: 'cancel' },
+        {
+          text: 'Radera',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            const { error } = await deleteAccount();
+            setDeleting(false);
+            if (error) Alert.alert('Kunde inte radera', error);
+            // On success the auth listener signs out and the app routes to login.
+          },
+        },
+      ],
+    );
+  };
 
   const foreningId = activeMembership?.forening_id ?? null;
   const { data } = useProfileData(foreningId, session?.user.id);
@@ -34,7 +70,7 @@ export default function Profil() {
   const stats = data?.stats ?? {
     points: activeMembership?.points ?? 0,
     visits: activeMembership?.visits ?? 0,
-    streak: activeMembership?.streak ?? 0,
+    week_streak: activeMembership?.week_streak ?? 0,
     level: activeMembership?.level ?? 1,
   };
   const badges = data?.badges ?? [];
@@ -63,7 +99,7 @@ export default function Profil() {
       <View style={styles.stats}>
         <StatCard icon="coin" tint={colors.primary} value={stats.points} label="Poäng" index={0} />
         <StatCard icon="calendar" tint={colors.info} value={stats.visits} label="Besök" index={1} />
-        <StatCard icon="fire" tint={colors.orange} value={stats.streak} label="Svit" index={2} />
+        <StatCard icon="fire" tint={colors.orange} value={stats.week_streak} label="Veckor i rad" index={2} />
       </View>
 
       {/* Min närvaro */}
@@ -104,8 +140,15 @@ export default function Profil() {
         )}
       </Tappable>
 
-      {/* Förening switcher */}
-      <Text style={styles.section}>Din förening</Text>
+      {/* Föreningar — byt aktiv, eller gå med i en ny */}
+      <View style={styles.sectionRow}>
+        <Text style={styles.sectionInline}>
+          {memberships.length > 1 ? 'Mina föreningar' : 'Min förening'}
+        </Text>
+        <Tappable scale={0.94} hitSlop={6} onPress={() => setAnslutOpen(true)}>
+          <Text style={styles.addLink}>+ Gå med</Text>
+        </Tappable>
+      </View>
       {memberships.map((m) => {
         const active = m.forening_id === activeMembership?.forening_id;
         return (
@@ -114,13 +157,57 @@ export default function Profil() {
               <View style={[styles.dot, { backgroundColor: m.forening?.color ?? colors.primary }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.foreningName}>{m.forening?.name ?? 'Förening'}</Text>
-                <Text style={styles.roleText}>{m.role === 'ledare' ? 'Ledare' : 'Ungdom'}</Text>
+                <Text style={styles.roleText}>
+                  {roleLabel(m.role)} · Nivå {m.level} · {m.points} p
+                </Text>
               </View>
-              {active && <Icon name="check" size={18} color={colors.green} />}
+              {active
+                ? <Icon name="check" size={18} color={colors.green} />
+                : <Text style={styles.switchHint}>Byt</Text>}
             </Card>
           </Tappable>
         );
       })}
+
+      {/* Anslut — koden är det enda sättet in, så den ska aldrig vara gömd */}
+      <Tappable onPress={() => setAnslutOpen(true)}>
+        <Card style={styles.navRow}>
+          <View style={styles.navTile}>
+            <Icon name="diamond" size={20} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.navTitle}>Anslut med kod</Text>
+            <Text style={styles.navSub}>Gå med i en ny förening eller en klass</Text>
+          </View>
+          <Icon name="chev" size={18} color={colors.faint} />
+        </Card>
+      </Tappable>
+
+      {/* Klasser — bara för föreningar som använder lärarrollen */}
+      {(klasser ?? []).length > 0 && (
+        <>
+          <Text style={styles.section}>Mina klasser</Text>
+          {(klasser ?? []).map((k) => (
+            <Card key={k.klass_elev_id} style={styles.row}>
+              <View style={[styles.dot, { backgroundColor: k.color }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.foreningName}>{k.name}</Text>
+                <Text style={styles.roleText}>
+                  {k.larare} · {klassWhen(k.weekday, k.time_text)} · {k.stjarnor_totalt}★
+                </Text>
+              </View>
+              <Tappable
+                scale={0.92}
+                hitSlop={6}
+                onPress={() => confirmLeave(k.klass_elev_id, k.name)}
+                disabled={lamnaKlass.isPending}
+              >
+                <Text style={styles.leaveLink}>Lämna</Text>
+              </Tappable>
+            </Card>
+          ))}
+        </>
+      )}
 
       {/* Inställningar */}
       <Text style={styles.section}>Inställningar</Text>
@@ -143,10 +230,32 @@ export default function Profil() {
         />
       </Card>
 
+      {/* Integritet & konto */}
+      <Text style={styles.section}>Integritet & konto</Text>
+      <Tappable onPress={() => router.push('/legal/privacy')}>
+        <Card style={styles.navRow}>
+          <View style={styles.navTile}>
+            <Icon name="shield" size={20} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.navTitle}>Integritetspolicy</Text>
+            <Text style={styles.navSub}>Så hanterar vi dina uppgifter</Text>
+          </View>
+          <Icon name="chev" size={18} color={colors.faint} />
+        </Card>
+      </Tappable>
+
       <View style={{ marginTop: 22 }}>
         <PrimaryButton label="Logga ut" onPress={signOut} colorsPair={['#2c2340', '#171226'] as const} />
       </View>
+
+      <Tappable onPress={deleting ? undefined : confirmDelete}>
+        <Text style={styles.deleteLink}>{deleting ? 'Raderar…' : 'Radera konto'}</Text>
+      </Tappable>
+
       <Text style={styles.email}>{session?.user?.email}</Text>
+
+      {anslutOpen && <AnslutModal role="ungdom" onClose={() => setAnslutOpen(false)} />}
     </Screen>
   );
 }
@@ -212,8 +321,12 @@ const styles = StyleSheet.create({
   rowActive: { borderWidth: 2, borderColor: colors.primary },
   dot: { width: 12, height: 12, borderRadius: 6 },
   foreningName: { fontFamily: font.semibold, fontSize: 13.5, color: colors.ink },
-  roleText: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted2 },
+  roleText: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted2, marginTop: 1 },
+  switchHint: { fontFamily: font.semibold, fontSize: 12, color: colors.primary },
+  leaveLink: { fontFamily: font.semibold, fontSize: 12, color: colors.muted },
+  addLink: { fontFamily: font.semibold, fontSize: 13, color: colors.primary },
 
   empty: { fontFamily: font.regular, fontSize: 12.5, color: colors.muted2, marginTop: 8 },
+  deleteLink: { fontFamily: font.semibold, fontSize: 12.5, color: colors.pink, textAlign: 'center', marginTop: 16 },
   email: { fontFamily: font.regular, fontSize: 11.5, color: colors.faint, textAlign: 'center', marginTop: 14 },
 });

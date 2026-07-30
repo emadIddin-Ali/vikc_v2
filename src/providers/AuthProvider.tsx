@@ -3,13 +3,16 @@ import type { Session } from '@supabase/supabase-js';
 import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
-import { registerPushToken } from '@/lib/push';
+import { registerPushToken, unregisterPushToken } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import type {
   Forening, MembershipWithForening, Profile, ViewRole,
 } from '@/lib/types';
 
 const ACTIVE_KEY = 'levla.activeForeningId';
+
+/** Roles a user can pick on the join screen. 'ledare' is granted, never chosen. */
+export type JoinRole = 'ungdom' | 'foralder' | 'larare';
 
 type AuthState = {
   loading: boolean;              // resolving the initial session
@@ -29,7 +32,8 @@ type AuthState = {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error?: string; needsConfirm?: boolean }>;
   signOut: () => Promise<void>;
-  joinForeningByCode: (code: string) => Promise<{ error?: string }>;
+  deleteAccount: () => Promise<{ error?: string }>;
+  joinForeningByCode: (code: string, role?: JoinRole, personnummer?: string | null) => Promise<{ error?: string }>;
   setActiveForeningId: (id: string) => void;
   refresh: () => Promise<void>;
   openForeningAsLeader: (f: Forening) => void;
@@ -151,11 +155,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     setActAsForening(null);
+    const uid = session?.user?.id;
+    if (uid) await unregisterPushToken(uid);
     await supabase.auth.signOut();
-  }, []);
+  }, [session?.user?.id]);
 
-  const joinForeningByCode = useCallback(async (code: string) => {
-    const { error } = await supabase.rpc('join_forening_by_code', { p_code: code.trim() });
+  const deleteAccount = useCallback(async () => {
+    const uid = session?.user?.id;
+    if (!uid) return { error: 'Ingen inloggad användare.' };
+    // Remove the push token first (its row is cascade-deleted too, but this also
+    // clears any device state), then delete the account. The RPC removes the
+    // auth.users row; every domain row cascades away with it (GDPR art 17).
+    await unregisterPushToken(uid);
+    const { error } = await supabase.rpc('delete_my_account');
+    if (error) return { error: error.message };
+    setActAsForening(null);
+    await supabase.auth.signOut();
+    return {};
+  }, [session?.user?.id]);
+
+  const joinForeningByCode = useCallback(async (code: string, role: JoinRole = 'ungdom', personnummer?: string | null) => {
+    const { error } = await supabase.rpc('join_forening_by_code', {
+      p_code: code.trim(),
+      p_role: role,
+      p_personnummer: personnummer ?? null,
+    });
     if (error) return { error: error.message };
     await refresh();
     return {};
@@ -199,6 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signUp,
     signOut,
+    deleteAccount,
     joinForeningByCode,
     setActiveForeningId,
     refresh,

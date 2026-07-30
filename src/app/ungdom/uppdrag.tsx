@@ -4,9 +4,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { Screen } from '@/components/Screen';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
-import { useClaimMission, useMissions } from '@/hooks/useMissions';
+import { useClaimMission, useCompleteTask, useMissions } from '@/hooks/useMissions';
+import type { MissionWithProgress } from '@/lib/types';
 import { ICON_TINT, colors, font, gradients, radius } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -15,15 +17,18 @@ export default function Uppdrag() {
   const fid = activeMembership?.forening_id ?? null;
   const { data } = useMissions(fid, session?.user.id);
   const claim = useClaimMission();
+  const complete = useCompleteTask();
 
   const missions = data?.missions ?? [];
+  const goals = missions.filter((m) => m.kind === 'goal');
+  const tasks = missions.filter((m) => m.kind === 'task');
   const weekDays = Math.min(data?.streak ?? 0, 3);
   const weekPct = Math.round((weekDays / 3) * 100);
 
   return (
     <Screen header={<Text style={styles.h1}>Uppdrag</Text>}>
       <Text style={styles.intro}>
-        Utmaningar du löser in för XP. Klara målet → tryck <Text style={styles.introB}>Lös in</Text>. Vissa räknas upp automatiskt när du checkar in.
+        Aktiviteter checkar du in på för poäng direkt. <Text style={styles.introB}>Uppdrag</Text> är extra mål som ger dig XP.
       </Text>
 
       <LinearGradient colors={gradients.weekly} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.weekly}>
@@ -35,54 +40,115 @@ export default function Uppdrag() {
         <Text style={styles.weeklyMeta}>{weekDays} / 3 dagar · vinst: 200 poäng</Text>
       </LinearGradient>
 
-      {missions.map((m, i) => {
-        const prog = m.mission_progress?.[0];
-        const progress = prog?.progress ?? 0;
-        const done = prog?.done ?? false;
-        const ready = progress >= m.goal && !done;
-        const pct = Math.min(100, Math.round((progress / m.goal) * 100));
-        const tint = ICON_TINT[m.icon] ?? colors.primary;
+      {missions.length === 0 && (
+        <EmptyState icon="target" title="Inga uppdrag än" body="Din förening har inte lagt upp några uppdrag. Kom tillbaka snart!" />
+      )}
 
-        return (
-          <FadeIn key={m.id} index={i}>
-          <Card style={styles.card}>
-            <View style={styles.cardTop}>
-              <View style={[styles.tile, { backgroundColor: m.tint }]}>
-                <Icon name={m.icon as any} size={23} color={tint} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.title}>{m.title}</Text>
-                {!!m.description && <Text style={styles.desc}>{m.description}</Text>}
-              </View>
-            </View>
+      {goals.length > 0 && (
+        <>
+          <View style={styles.sectionRow}>
+            <Text style={styles.section}>Mål</Text>
+            <Text style={styles.sectionHint}>fylls när du checkar in</Text>
+          </View>
+          {goals.map((m, i) => (
+            <FadeIn key={m.id} index={i}>
+              <GoalCard mission={m} onClaim={() => claim.mutate(m.id)} busy={claim.isPending} />
+            </FadeIn>
+          ))}
+        </>
+      )}
 
-            <View style={styles.progRow}>
-              <View style={styles.progTrack}>
-                <View style={[styles.progFill, { width: `${pct}%`, backgroundColor: tint }]} />
-              </View>
-              <Text style={styles.progText}>{done ? 'Klart' : `${progress}/${m.goal}`}</Text>
-            </View>
-
-            {done ? (
-              <View style={[styles.btn, { backgroundColor: colors.tintPurple2 }]}>
-                <Text style={[styles.btnText, { color: colors.muted2 }]}>✓ Inlöst</Text>
-              </View>
-            ) : ready ? (
-              <Tappable disabled={claim.isPending} scale={0.96} onPress={() => claim.mutate(m.id)}>
-                <LinearGradient colors={gradients.success} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.btn}>
-                  <Text style={[styles.btnText, { color: colors.white }]}>Lös in +{m.xp} XP</Text>
-                </LinearGradient>
-              </Tappable>
-            ) : (
-              <View style={[styles.btn, { backgroundColor: '#f4f2fb' }]}>
-                <Text style={[styles.btnText, { color: colors.muted2 }]}>Pågår ({progress}/{m.goal})</Text>
-              </View>
-            )}
-          </Card>
-          </FadeIn>
-        );
-      })}
+      {tasks.length > 0 && (
+        <>
+          <View style={styles.sectionRow}>
+            <Text style={styles.section}>Uppgifter</Text>
+            <Text style={styles.sectionHint}>gör själv & markera klart</Text>
+          </View>
+          {tasks.map((m, i) => (
+            <FadeIn key={m.id} index={i}>
+              <TaskCard mission={m} onComplete={() => complete.mutate(m.id)} busy={complete.isPending} />
+            </FadeIn>
+          ))}
+        </>
+      )}
     </Screen>
+  );
+}
+
+function GoalCard({ mission: m, onClaim, busy }: { mission: MissionWithProgress; onClaim: () => void; busy: boolean }) {
+  const prog = m.mission_progress?.[0];
+  const progress = prog?.progress ?? 0;
+  const done = prog?.done ?? false;
+  const ready = progress >= m.goal && !done;
+  const pct = Math.min(100, Math.round((progress / m.goal) * 100));
+  const tint = ICON_TINT[m.icon] ?? colors.primary;
+
+  return (
+    <Card style={styles.card}>
+      <View style={styles.cardTop}>
+        <View style={[styles.tile, { backgroundColor: m.tint }]}>
+          <Icon name={m.icon as any} size={23} color={tint} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{m.title}</Text>
+          {!!m.description && <Text style={styles.desc}>{m.description}</Text>}
+        </View>
+      </View>
+
+      <View style={styles.progRow}>
+        <View style={styles.progTrack}>
+          <View style={[styles.progFill, { width: `${pct}%`, backgroundColor: tint }]} />
+        </View>
+        <Text style={styles.progText}>{done ? 'Klart' : `${progress}/${m.goal}`}</Text>
+      </View>
+
+      {done ? (
+        <View style={[styles.btn, { backgroundColor: colors.tintPurple2 }]}>
+          <Text style={[styles.btnText, { color: colors.muted2 }]}>✓ Inlöst</Text>
+        </View>
+      ) : ready ? (
+        <Tappable disabled={busy} scale={0.96} onPress={onClaim}>
+          <LinearGradient colors={gradients.success} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.btn}>
+            <Text style={[styles.btnText, { color: colors.white }]}>Lös in +{m.xp} XP</Text>
+          </LinearGradient>
+        </Tappable>
+      ) : (
+        <View style={[styles.btn, { backgroundColor: '#f4f2fb' }]}>
+          <Text style={[styles.btnText, { color: colors.muted2 }]}>Pågår ({progress}/{m.goal})</Text>
+        </View>
+      )}
+    </Card>
+  );
+}
+
+function TaskCard({ mission: m, onComplete, busy }: { mission: MissionWithProgress; onComplete: () => void; busy: boolean }) {
+  const done = m.mission_progress?.[0]?.done ?? false;
+  const tint = ICON_TINT[m.icon] ?? colors.primary;
+
+  return (
+    <Card style={styles.card}>
+      <View style={styles.cardTop}>
+        <View style={[styles.tile, { backgroundColor: m.tint }]}>
+          <Icon name={m.icon as any} size={23} color={tint} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{m.title}</Text>
+          {!!m.description && <Text style={styles.desc}>{m.description}</Text>}
+        </View>
+      </View>
+
+      {done ? (
+        <View style={[styles.btn, { backgroundColor: colors.tintPurple2 }]}>
+          <Text style={[styles.btnText, { color: colors.muted2 }]}>✓ Klart</Text>
+        </View>
+      ) : (
+        <Tappable disabled={busy} scale={0.96} onPress={onComplete}>
+          <LinearGradient colors={gradients.success} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.btn}>
+            <Text style={[styles.btnText, { color: colors.white }]}>Markera klart +{m.xp} XP</Text>
+          </LinearGradient>
+        </Tappable>
+      )}
+    </Card>
   );
 }
 
@@ -97,7 +163,11 @@ const styles = StyleSheet.create({
   weeklyFill: { height: 11, borderRadius: 8, backgroundColor: colors.white },
   weeklyMeta: { fontFamily: font.regular, fontSize: 11.5, color: 'rgba(255,255,255,0.92)', marginTop: 6 },
 
-  card: { marginTop: 13, padding: 15 },
+  sectionRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 22, marginBottom: 2 },
+  section: { fontFamily: font.bold, fontSize: 16, color: colors.ink },
+  sectionHint: { fontFamily: font.regular, fontSize: 11.5, color: colors.muted2 },
+
+  card: { marginTop: 12, padding: 15 },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   tile: { width: 46, height: 46, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: font.semibold, fontSize: 14, color: colors.ink },

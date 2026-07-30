@@ -18,7 +18,9 @@ const MEMBER_KEYS = [
   'missions',
   'leaderboard',
   'open-activities',
+  'open-checkins',
   'notifications',
+  'min-vecka',
 ] as const;
 
 /** Refetch everything the member's balance is visible in. */
