@@ -7,6 +7,7 @@ import { Screen } from '@/components/Screen';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
+import { useMinVecka } from '@/hooks/useLeaderboard';
 import { useClaimMission, useCompleteTask, useMissions } from '@/hooks/useMissions';
 import type { MissionWithProgress } from '@/lib/types';
 import { ICON_TINT, colors, font, gradients, radius } from '@/theme/tokens';
@@ -19,11 +20,18 @@ export default function Uppdrag() {
   const claim = useClaimMission();
   const complete = useCompleteTask();
 
+  const { data: vecka } = useMinVecka(fid);
+
   const missions = data?.missions ?? [];
   const goals = missions.filter((m) => m.kind === 'goal');
   const tasks = missions.filter((m) => m.kind === 'task');
-  const weekDays = Math.min(data?.streak ?? 0, 3);
-  const weekPct = Math.round((weekDays / 3) * 100);
+
+  // Kortet visade förut "3 dagar i rad · vinst 200 poäng" med hårdkodade
+  // siffror som ingenting någonsin betalade ut. Nu speglar det föreningens
+  // riktiga veckomål, och bonusen delas ut av servern när målet nås.
+  const mal = vecka?.veckomal ?? 0;
+  const besok = vecka?.besok_vecka ?? 0;
+  const weekPct = mal > 0 ? Math.round((Math.min(besok, mal) / mal) * 100) : 0;
 
   return (
     <Screen header={<Text style={styles.h1}>Uppdrag</Text>}>
@@ -31,14 +39,20 @@ export default function Uppdrag() {
         Aktiviteter checkar du in på för poäng direkt. <Text style={styles.introB}>Uppdrag</Text> är extra mål som ger dig XP.
       </Text>
 
-      <LinearGradient colors={gradients.weekly} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.weekly}>
-        <Text style={styles.weeklyKicker}>VECKANS UTMANING</Text>
-        <Text style={styles.weeklyTitle}>Besök 3 dagar i rad</Text>
-        <View style={styles.weeklyTrack}>
-          <View style={[styles.weeklyFill, { width: `${weekPct}%` }]} />
-        </View>
-        <Text style={styles.weeklyMeta}>{weekDays} / 3 dagar · vinst: 200 poäng</Text>
-      </LinearGradient>
+      {mal > 0 && (
+        <LinearGradient colors={gradients.weekly} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.weekly}>
+          <Text style={styles.weeklyKicker}>VECKANS MÅL</Text>
+          <Text style={styles.weeklyTitle}>
+            {vecka?.klart ? 'Klarat den här veckan!' : `Besök ${mal} ${mal === 1 ? 'gång' : 'gånger'}`}
+          </Text>
+          <View style={styles.weeklyTrack}>
+            <View style={[styles.weeklyFill, { width: `${weekPct}%` }]} />
+          </View>
+          <Text style={styles.weeklyMeta}>
+            {besok} / {mal} besök · {vecka?.klart ? 'bonusen är utdelad' : `vinst: ${vecka?.veckomal_xp ?? 0} XP`}
+          </Text>
+        </LinearGradient>
+      )}
 
       {missions.length === 0 && (
         <EmptyState icon="target" title="Inga uppdrag än" body="Din förening har inte lagt upp några uppdrag. Kom tillbaka snart!" />

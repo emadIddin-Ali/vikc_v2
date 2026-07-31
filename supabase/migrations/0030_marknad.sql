@@ -177,8 +177,21 @@ create policy redemption_select on public.redemption for select to authenticated
 -- fortfarande ligger på det ursprungliga 0. Efter det ändrar varje förening
 -- själv i ledarens Klasser-flik.
 -- ---------------------------------------------------------------------
+-- Ombaslinjeringen körs bara den gång då kolumnens default fortfarande är 0.
+-- Utan den kontrollen skulle en omkörning skriva över en förening som medvetet
+-- ställt tillbaka faktorn till 0.
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public' and table_name = 'forening'
+       and column_name = 'star_points_factor' and column_default like '0.5%'
+  ) then
+    update public.forening set star_points_factor = 0.5 where star_points_factor = 0;
+  end if;
+end $$;
+
 alter table public.forening alter column star_points_factor set default 0.5;
-update public.forening set star_points_factor = 0.5 where star_points_factor = 0;
 
 -- ---------------------------------------------------------------------
 -- youth_shop v3 — öppettid, upprepade köp och barn

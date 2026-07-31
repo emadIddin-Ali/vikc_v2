@@ -4,7 +4,7 @@ import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { TextField } from '@/components/ui/TextField';
 import { Tappable } from '@/components/ui/Tappable';
-import { useForening } from '@/hooks/useLedare';
+import { useForening, useTilldelaKlass } from '@/hooks/useLedare';
 import { useGodkannLarare, useLedareKlasser, useLedareLarare, useSetStarSettings } from '@/hooks/useLarare';
 import { DEFAULT_STAR_XP, klassWhen } from '@/lib/stars';
 import { colors, font, radius } from '@/theme/tokens';
@@ -23,6 +23,7 @@ export function Klasser({ fid }: { fid: string }) {
   const { data: klasser } = useLedareKlasser(fid);
   const godkann = useGodkannLarare();
   const saveSettings = useSetStarSettings();
+  const tilldela = useTilldelaKlass();
 
   const [kurva, setKurva] = useState<string[]>(DEFAULT_STAR_XP.map(String));
   const [faktor, setFaktor] = useState('0.5');
@@ -140,6 +141,27 @@ export function Klasser({ fid }: { fid: string }) {
                 {k.stjarnor_30d}★ på 30 dagar
                 {k.senaste_lektion ? ` · senaste lektion ${k.senaste_lektion}` : ' · ingen lektion hållen'}
               </Text>
+
+              {/* En klass utan lärare (läraren raderade sitt konto) kan ingen
+                  hålla lektion i förrän någon tar över den. */}
+              {!k.larare_user_id && aktiva.length > 0 && (
+                <>
+                  <Text style={styles.assignLabel}>Klassen saknar lärare — ge den till:</Text>
+                  <View style={styles.pillRow}>
+                    {aktiva.map((l) => (
+                      <Tappable
+                        key={l.user_id}
+                        scale={0.94}
+                        style={styles.assignPill}
+                        disabled={tilldela.isPending}
+                        onPress={() => tilldela.mutate({ klass: k.id, larare: l.user_id })}
+                      >
+                        <Text style={styles.assignPillText}>{l.name.split(' ')[0]}</Text>
+                      </Tappable>
+                    ))}
+                  </View>
+                </>
+              )}
             </View>
           </Card>
         ))
@@ -215,6 +237,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.green, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12,
   },
   okText: { fontFamily: font.semibold, fontSize: 12.5, color: colors.white },
+  assignLabel: { fontFamily: font.medium, fontSize: 11.5, color: colors.pink, marginTop: 8 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  assignPill: { backgroundColor: colors.ink, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12 },
+  assignPillText: { fontFamily: font.semibold, fontSize: 12, color: colors.white },
+
   pauseBtn: { borderRadius: 12, borderWidth: 1.5, borderColor: colors.inputBorder, paddingVertical: 8, paddingHorizontal: 12 },
   pauseText: { fontFamily: font.semibold, fontSize: 12.5, color: colors.muted },
 

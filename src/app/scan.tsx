@@ -21,7 +21,7 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View,
+  ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -381,6 +381,15 @@ export default function Scan() {
             <View style={[styles.corner, styles.br]} />
           </View>
           <Text style={styles.scanHint}>{inRange ? 'Rikta kameran mot QR-koden' : 'Lås upp genom att vara på plats'}</Text>
+          {/* QR-avläsning i webbläsare bygger på BarcodeDetector, som saknas i
+              Safari och iOS. Utan den öppnas kameran men hittar aldrig koden —
+              säg det i stället för att låta användaren stå och rikta i onödan. */}
+          {Platform.OS === 'web' && (
+            <Text style={styles.webHint}>
+              Skanning i webbläsare fungerar bäst i Chrome. Går det inte — använd appen, eller checka in
+              på en öppen aktivitet nedan.
+            </Text>
+          )}
         </View>
 
         {!permission?.granted && (
@@ -465,6 +474,7 @@ const styles = StyleSheet.create({
   bl: { left: 8, bottom: 8, borderLeftWidth: 4, borderBottomWidth: 4, borderBottomLeftRadius: 8 },
   br: { right: 8, bottom: 8, borderRightWidth: 4, borderBottomWidth: 4, borderBottomRightRadius: 8 },
   scanHint: { fontFamily: font.regular, fontSize: 13, color: '#c9bdf0', textAlign: 'center', marginTop: 14 },
+  webHint: { fontFamily: font.regular, fontSize: 11.5, color: '#9c8fd0', textAlign: 'center', marginTop: 8, lineHeight: 16, paddingHorizontal: 16 },
 
   grantBtn: { alignItems: 'center', paddingVertical: 10 },
   grantText: { fontFamily: font.semibold, fontSize: 13, color: colors.gold, textDecorationLine: 'underline' },

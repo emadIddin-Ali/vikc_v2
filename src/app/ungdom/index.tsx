@@ -16,11 +16,12 @@ import { Stjarnkort } from '@/features/larare/Stjarnkort';
 import { VeckoKort } from '@/features/vecka/VeckoKort';
 import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { useHomeData } from '@/hooks/useHomeData';
+import { useMinVecka } from '@/hooks/useLeaderboard';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { fmtDateTime } from '@/lib/date';
 import { homePep, isToday } from '@/lib/pep';
 import {
-  ICON_TINT, XP_MAX, activityTheme, colors, font, gradients, greetingForNow, levelName, radius, shadow, relativeDate,
+  ICON_TINT, XP_MAX, activityTheme, colors, font, greetingForNow, levelName, radius, shadow, relativeDate,
 } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -32,6 +33,7 @@ export default function Hem() {
   const forening = activeMembership?.forening;
   const foreningId = activeMembership?.forening_id ?? null;
   const { data } = useHomeData(foreningId, session?.user.id);
+  const { data: vecka } = useMinVecka(foreningId);
 
   // Fresh DB stats when available, else the context snapshot.
   const stats = data?.membership ?? activeMembership;
@@ -53,7 +55,12 @@ export default function Hem() {
   const unread = data?.unreadCount ?? 0;
   const visits = stats?.visits ?? 0;
 
-  const pep = homePep({ visits, streak, checkedInToday: isToday(recent[0]?.created_at) });
+  const pep = homePep({
+    visits,
+    streak,
+    checkedInToday: isToday(recent[0]?.created_at),
+    visitedThisWeek: (vecka?.besok_vecka ?? 0) > 0,
+  });
 
   const reduced = useReducedMotion();
   const xpAnim = useRef(new Animated.Value(0)).current;

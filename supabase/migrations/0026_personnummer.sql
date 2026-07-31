@@ -15,6 +15,22 @@
 -- Kör efter 0024/0025.
 -- =====================================================================
 
+-- ---------------------------------------------------------------------
+-- SPÄRR — kör inte på en databas som redan har lärarrollen.
+--
+-- 0028 byggde ut join_forening_by_code med rollen 'larare', och 0031 la till
+-- week_streak i my_children. Båda definieras om här i sina äldre versioner,
+-- så en omkörning skulle ta bort möjligheten att gå med som lärare och få
+-- förälderns vy att tappa veckosviten.
+-- ---------------------------------------------------------------------
+do $$
+begin
+  if exists (select 1 from pg_enum e join pg_type t on t.oid = e.enumtypid
+              where t.typname = 'app_role' and e.enumlabel = 'larare') then
+    raise exception 'Databasen har redan lärarrollen (0027+ är körd). Kör INTE om 0026 — den skulle skriva över join_forening_by_code och my_children med äldre versioner. Kör supabase/diagnostik.sql för att se vad som saknas.';
+  end if;
+end $$;
+
 -- ---------- schema ----------
 alter table public.forening   add column if not exists require_personnummer boolean not null default false;
 alter table public.membership add column if not exists personnummer text;

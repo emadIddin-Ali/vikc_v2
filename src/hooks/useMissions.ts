@@ -10,7 +10,6 @@ import { toast } from '@/store/toast';
 export type MissionsData = {
   missions: MissionWithProgress[];
   points: number;
-  streak: number;
 };
 
 export function useMissions(foreningId: string | null, userId: string | undefined) {
@@ -28,7 +27,7 @@ export function useMissions(foreningId: string | null, userId: string | undefine
           .order('sort', { ascending: true }),
         supabase
           .from('membership')
-          .select('points, streak')
+          .select('points')
           .eq('forening_id', fid)
           .eq('user_id', userId as string)
           .maybeSingle(),
@@ -36,7 +35,6 @@ export function useMissions(foreningId: string | null, userId: string | undefine
       return {
         missions: (missionsRes.data as MissionWithProgress[]) ?? [],
         points: (memRes.data as { points: number } | null)?.points ?? 0,
-        streak: (memRes.data as { streak: number } | null)?.streak ?? 0,
       };
     },
   });

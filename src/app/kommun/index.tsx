@@ -7,7 +7,7 @@ import { Icon } from '@/components/Icon';
 import { TextField } from '@/components/ui/TextField';
 import { useCreateForening, useKommunOverview } from '@/hooks/useKommun';
 import { useRefreshAll } from '@/hooks/useRefreshAll';
-import { colors, fmt, font } from '@/theme/tokens';
+import { colors, font } from '@/theme/tokens';
 import { toast } from '@/store/toast';
 import { useAuth } from '@/providers/AuthProvider';
 

@@ -10,7 +10,7 @@ import { FadeIn } from '@/components/ui/FadeIn';
 import { Tappable } from '@/components/ui/Tappable';
 import { groupBadges, useProfileData } from '@/hooks/useProfile';
 import { useBrandGradient } from '@/hooks/useBrandGradient';
-import { colors, font, gradients, radius, shadow } from '@/theme/tokens';
+import { colors, font, radius, shadow } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 
 export default function Marken() {

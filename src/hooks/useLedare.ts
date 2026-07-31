@@ -183,6 +183,48 @@ export function useSetRewardStock() {
   });
 }
 
+/**
+ * Give the förening a new join code. Memberships hang off forening_id, not the
+ * code, so nobody loses their place — this is the way out when a code has been
+ * passed around beyond the people it was meant for.
+ */
+export function useRotateJoinCode() {
+  const qc = useQueryClient();
+  const { refresh } = useAuth();
+  return useMutation<string, Error, string>({
+    mutationFn: async (forening) => {
+      const { data, error } = await supabase.rpc('rotate_join_code', { p_forening: forening });
+      if (error) throw new Error(error.message);
+      return data as string;
+    },
+    onSuccess: async (kod) => {
+      toast(`Ny föreningskod: ${kod}`);
+      await refresh();
+      qc.invalidateQueries({ queryKey: ['forening'] });
+      qc.invalidateQueries({ queryKey: ['kommun-overview'] });
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
+/** Hand a class to another teacher — the way to rescue one whose teacher left. */
+export function useTilldelaKlass() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { klass: string; larare: string }>({
+    mutationFn: async (v) => {
+      const { error } = await supabase.rpc('tilldela_klass', { p_klass: v.klass, p_larare: v.larare });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast('Klassen har fått en ny lärare');
+      qc.invalidateQueries({ queryKey: ['ledare-klasser'] });
+      qc.invalidateQueries({ queryKey: ['ledare-larare'] });
+      qc.invalidateQueries({ queryKey: ['larare-klasser'] });
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
 /** Visits per week that earn the weekly bonus, and what it pays (ledare only). */
 export function useSetForeningWeekGoal() {
   const qc = useQueryClient();

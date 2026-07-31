@@ -15,7 +15,7 @@ import type { Activity } from '@/lib/types';
 import { toast } from '@/store/toast';
 import { useLedareActivities, usePublishActivity, useSetForeningLocation, useSetForeningTheme } from '@/hooks/useLedare';
 import { useBrandGradient } from '@/hooks/useBrandGradient';
-import { APP_THEMES, DEFAULT_THEME, THEMES, activityTheme, colors, font, gradients } from '@/theme/tokens';
+import { APP_THEMES, DEFAULT_THEME, THEMES, activityTheme, colors, font } from '@/theme/tokens';
 import type { AppThemeId } from '@/theme/tokens';
 import { useAuth } from '@/providers/AuthProvider';
 

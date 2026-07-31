@@ -1,11 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { TextField } from '@/components/ui/TextField';
 import {
-  useForening, useLedareRegister, useSetForeningRequirePnr, useSetForeningWeekGoal, useUpdateForeningInfo,
+  useForening, useLedareRegister, useRotateJoinCode, useSetForeningRequirePnr, useSetForeningWeekGoal,
+  useUpdateForeningInfo,
 } from '@/hooks/useLedare';
 import { useBrandGradient } from '@/hooks/useBrandGradient';
 import { pickImage, uploadForeningLogo } from '@/lib/photo';
@@ -19,6 +20,7 @@ export function ForeningInfo({ fid }: { fid: string }) {
   const save = useUpdateForeningInfo();
   const setRequirePnr = useSetForeningRequirePnr();
   const setWeekGoal = useSetForeningWeekGoal();
+  const rotateCode = useRotateJoinCode();
   const { data: register } = useLedareRegister(fid);
   const [showRegister, setShowRegister] = useState(false);
 
@@ -137,6 +139,34 @@ export function ForeningInfo({ fid }: { fid: string }) {
         </Pressable>
       </Card>
 
+      {/* Föreningskoden — ledaren delar ut den, så den måste gå att både se
+          och byta. Den satt tidigare bara i kommunens vy. */}
+      <Card style={[styles.card, { marginTop: 12 }]}>
+        <Text style={styles.switchLabel}>Föreningskod</Text>
+        <Text style={styles.switchHint}>
+          Koden nya medlemmar skriver in för att gå med. Har den spridits vidare till fel personer kan du
+          byta den — ingen som redan är med förlorar sin plats.
+        </Text>
+        <View style={styles.codeRow}>
+          <Text style={styles.code}>{forening?.join_code ?? '—'}</Text>
+          <Pressable
+            onPress={() =>
+              Alert.alert(
+                'Byt föreningskod',
+                'Den gamla koden slutar fungera direkt. Alla som redan är medlemmar påverkas inte.',
+                [
+                  { text: 'Avbryt', style: 'cancel' },
+                  { text: 'Byt kod', style: 'destructive', onPress: () => rotateCode.mutate(fid) },
+                ],
+              )}
+            disabled={rotateCode.isPending}
+            style={styles.codeBtn}
+          >
+            <Text style={styles.codeBtnText}>Byt kod</Text>
+          </Pressable>
+        </View>
+      </Card>
+
       {/* Register med personnummer */}
       <Card style={styles.card}>
         <View style={styles.switchRow}>
@@ -234,6 +264,11 @@ const styles = StyleSheet.create({
   infoText: { fontFamily: font.regular, fontSize: 12, color: '#5b4b86', lineHeight: 17, marginTop: 3 },
 
   card: { padding: 15 },
+  codeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  code: { fontFamily: font.bold, fontSize: 24, color: colors.ink, letterSpacing: 3 },
+  codeBtn: { borderRadius: 12, borderWidth: 1.5, borderColor: colors.inputBorder, paddingVertical: 9, paddingHorizontal: 14 },
+  codeBtnText: { fontFamily: font.semibold, fontSize: 12.5, color: colors.muted },
+
   goalRow: { flexDirection: 'row', gap: 9, marginTop: 12 },
   goalCol: { flex: 1 },
   goalLabel: { fontFamily: font.medium, fontSize: 11, color: colors.muted, marginBottom: 4, textAlign: 'center' },

@@ -1,6 +1,6 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -19,7 +19,11 @@ export const supabase = createClient(url ?? '', anon ?? '', {
     storage: AsyncStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // På webben kommer OAuth tillbaka som en HELSIDESOMDIRIGERING med ?code i
+    // adressfältet — då ska klienten plocka upp koden själv. I appen öppnas i
+    // stället en inbyggd webbläsare och utbytet sker manuellt i oauth.ts, så
+    // där måste automatiken vara av för att de två inte ska krocka.
+    detectSessionInUrl: Platform.OS === 'web',
     // PKCE: OAuth (Google) redirects back with a ?code we exchange manually.
     // The code verifier is kept in AsyncStorage by this same client instance.
     flowType: 'pkce',
@@ -27,7 +31,11 @@ export const supabase = createClient(url ?? '', anon ?? '', {
 });
 
 // Refresh the session while the app is in the foreground (Supabase RN guidance).
-AppState.addEventListener('change', (state) => {
-  if (state === 'active') supabase.auth.startAutoRefresh();
-  else supabase.auth.stopAutoRefresh();
-});
+// Webbläsaren har ingen motsvarighet — där sköter autoRefreshToken det själv,
+// och AppState står permanent på 'active'.
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') supabase.auth.startAutoRefresh();
+    else supabase.auth.stopAutoRefresh();
+  });
+}

@@ -21,8 +21,26 @@
 --   A5     leaderboard() blandade in fejkade demo-konkurrenter i skarp drift.
 --          Demo-unionen tas bort.
 --
--- Idempotent: kan köras om. Kräver att 0001–0023 körts först.
+-- Idempotent: kan köras om — men BARA så länge databasen inte gått vidare
+-- förbi 0031. Se spärren nedan.
 -- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- SPÄRR — kör inte den här filen på en databas som redan har XP-ekonomin.
+--
+-- 0031 gjorde om leaderboard() så att den rankar på säsongens XP i stället
+-- för på poängsaldot. Den här filen definierar den gamla poängversionen, och
+-- en omkörning skulle alltså tyst nedgradera topplistan och få appen att läsa
+-- en kolumn som inte längre finns. Postgres vägrar redan av egen kraft
+-- ("cannot change return type of existing function") — det här ger samma
+-- besked på svenska, innan halva filen hunnit köra.
+-- ---------------------------------------------------------------------
+do $$
+begin
+  if to_regclass('public.xp_ledger') is not null then
+    raise exception 'Databasen är redan uppdaterad förbi den här migrationen (xp_ledger finns, dvs. 0031 är körd). Kör INTE om 0024 — den skulle ersätta säsongstopplistan med den gamla poängversionen. Kör supabase/diagnostik.sql för att se vad som saknas.';
+  end if;
+end $$;
 
 -- ---------------------------------------------------------------------
 -- K2 — stäng dev-/fuskfunktionerna för appanvändare.

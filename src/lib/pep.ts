@@ -10,8 +10,11 @@
 
 export type HomeState = {
   visits: number;
+  /** Weeks in a row with a visit — the streak is weekly, not daily. */
   streak: number;
   checkedInToday: boolean;
+  /** Whether the member has already been here this week. */
+  visitedThisWeek?: boolean;
 };
 
 export type HomePep = {
@@ -23,7 +26,7 @@ export type HomePep = {
   action: string | null;
 };
 
-export function homePep({ visits, streak, checkedInToday }: HomeState): HomePep {
+export function homePep({ visits, streak, checkedInToday, visitedThisWeek }: HomeState): HomePep {
   if (visits === 0) {
     return {
       line: 'Första incheckningen',
@@ -35,21 +38,31 @@ export function homePep({ visits, streak, checkedInToday }: HomeState): HomePep 
   if (checkedInToday) {
     return streak >= 2
       ? {
-          line: `${streak} dagar i rad`,
-          hint: 'Kom tillbaka imorgon så växer sviten.',
+          line: `${streak} veckor i rad`,
+          hint: 'Kom tillbaka nästa vecka så växer sviten.',
           action: null,
         }
       : {
           line: 'Incheckad idag',
-          hint: 'Kom tillbaka imorgon så blir det 2 i rad.',
+          hint: 'Kom hit nästa vecka också så blir det 2 veckor i rad.',
           action: null,
         };
+  }
+
+  // Sviten mäts i veckor, så "du har redan varit här den här veckan" är ett
+  // annat läge än "sviten lever men veckan är oanvänd".
+  if (visitedThisWeek) {
+    return {
+      line: streak >= 2 ? `${streak} veckor i rad` : 'Veckan är avklarad',
+      hint: 'Du har varit här den här veckan. Kom gärna igen — varje besök ger poäng.',
+      action: 'Checka in',
+    };
   }
 
   if (streak >= 1) {
     return {
       line: 'Sviten lever',
-      hint: `${streak} ${streak === 1 ? 'dag' : 'dagar'} i rad. Checka in idag så blir det ${streak + 1}.`,
+      hint: `${streak} ${streak === 1 ? 'vecka' : 'veckor'} i rad. Kom hit den här veckan så blir det ${streak + 1}.`,
       action: 'Checka in',
     };
   }

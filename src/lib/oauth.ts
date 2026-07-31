@@ -1,5 +1,6 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
 // Lets the auth browser tab close cleanly when it redirects back.
@@ -20,6 +21,20 @@ type OAuthProvider = 'google' | 'facebook';
 /** Sign in with a web-based OAuth provider (Google/Facebook) via PKCE. */
 export async function signInWithProvider(provider: OAuthProvider): Promise<{ error?: string }> {
   try {
+    // Webben har ingen inbyggd webbläsare att öppna — där gör Supabase en
+    // helsidesomdirigering till Google och tillbaka till samma origin, och
+    // klienten (detectSessionInUrl) plockar upp koden när sidan laddas om.
+    // Att försöka med openAuthSessionAsync ger en popup som de flesta
+    // webbläsare blockerar.
+    if (Platform.OS === 'web') {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) return { error: error.message };
+      return {}; // sidan navigerar bort härifrån
+    }
+
     const redirectTo = Linking.createURL('auth/callback');
     // The single most common cause of "Safari kan inte öppna sidan" after OAuth
     // is that this exact URL isn't in Supabase → Authentication → URL

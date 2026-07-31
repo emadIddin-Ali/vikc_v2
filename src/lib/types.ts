@@ -353,6 +353,8 @@ export type LedareKlass = {
   id: string;
   name: string;
   larare: string;
+  /** null when the teacher deleted their account — the class needs a new one. */
+  larare_user_id: string | null;
   weekday: number | null;
   time_text: string | null;
   color: string;
