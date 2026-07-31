@@ -197,15 +197,30 @@ lanseringskraven.
 
 ### Steg 1 — webbappen
 
+Webbappen ligger på **Vercel**. `vercel.json` i roten sköter bygget åt Vercel: den kör
+`expo export --platform web`, publicerar `dist/` och lägger in **rewriten som skickar alla vägar till
+`index.html`**. Utan den rewriten ger en direktlänk till t.ex. `/ungdom/butik` en 404 — appen är en
+SPA (`web.output: "single"` i `app.json`), inte en uppsättning statiska sidor.
+
 ```bash
-npx expo export --platform web     # bygger till dist/
-npx eas deploy                     # Expos egen hosting, sätter SPA-rewrites själv
+npm run build:web       # bygger lokalt till dist/ — valfritt, för att testa bygget
+npx vercel login        # en gång
+npx vercel link         # kopplar mappen till ett Vercel-projekt
+npx vercel --prod       # publicerar
 ```
 
-Vill du hellre ligga på Vercel, Netlify eller Cloudflare Pages: peka dem på `dist/` och lägg till en
-**rewrite som skickar alla vägar till `index.html`**. Utan den ger en direktlänk till t.ex.
-`/ungdom/butik` en 404 — appen är en SPA (`web.output: "single"` i `app.json`), inte en uppsättning
-statiska sidor.
+**Miljövariabler måste finnas i Vercel** — `.env.local` följer inte med (den är git-ignorerad), och
+`EXPO_PUBLIC_*` bakas in vid **bygget**, inte vid körning. Lägg in dem för Production, Preview och
+Development:
+
+```bash
+npx vercel env add EXPO_PUBLIC_SUPABASE_URL
+npx vercel env add EXPO_PUBLIC_SUPABASE_ANON_KEY
+```
+
+Ändrar du en variabel senare måste du **bygga om** (`npx vercel --prod --force`) — värdet sitter i
+JS-bundlen. Kopplar du i stället repot till Vercel via GitHub bygger varje push till `main` en ny
+version automatiskt.
 
 Efter första deployen, lägg till din adress på två ställen:
 

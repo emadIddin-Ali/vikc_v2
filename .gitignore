@@ -45,3 +45,6 @@ example
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Vercel
+.vercel/
