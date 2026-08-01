@@ -55,6 +55,8 @@ export type PublishVars = {
   dailyLimit: number;
   radiusM: number | null;
   requiresCheckout: boolean;
+  /** Minuter ungdomen måste stanna innan utcheckningen släpps. 0 = ingen väntan. */
+  minStayMin: number;
 };
 
 export function usePublishActivity() {
@@ -78,6 +80,7 @@ export function usePublishActivity() {
         p_daily_limit: v.dailyLimit,
         p_radius_m: v.radiusM,
         p_requires_checkout: v.requiresCheckout,
+        p_min_stay_min: v.minStayMin,
       });
       if (error) throw new Error(error.message);
       return data as Activity;

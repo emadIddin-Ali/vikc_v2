@@ -1,8 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { Alert } from '@/lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert } from '@/lib/alert';
 import { DateTimeField } from '@/components/DateTimeField';
 import { Icon } from '@/components/Icon';
 import { TextField } from '@/components/ui/TextField';
@@ -27,6 +27,7 @@ export function EditActivity({ activity, onClose }: { activity: Activity; onClos
   const [radiusM, setRadiusM] = useState(activity.radius_m != null ? String(activity.radius_m) : '');
   const [requiresPhoto, setRequiresPhoto] = useState(activity.requires_photo);
   const [requiresCheckout, setRequiresCheckout] = useState(activity.requires_checkout);
+  const [minStayMin, setMinStayMin] = useState(activity.min_stay_min ? String(activity.min_stay_min) : '');
 
   const onSave = () => {
     const patch: Record<string, unknown> = {
@@ -37,6 +38,9 @@ export function EditActivity({ activity, onClose }: { activity: Activity; onClos
       radius_m: radiusM ? parseInt(radiusM) : null,
       requires_photo: activity.checkin_mode === 'open' ? requiresPhoto : false,
       requires_checkout: requiresCheckout,
+      // Tiden hör ihop med utcheckningen — stängs den av ska den inte ligga
+      // kvar och gälla igen nästa gång någon slår på den.
+      min_stay_min: requiresCheckout ? Math.min(Math.max(parseInt(minStayMin) || 0, 0), 1440) : 0,
     };
     if (!activity.continuous) {
       patch.starts_at = startsAt ? startsAt.toISOString() : null;
@@ -96,6 +100,20 @@ export function EditActivity({ activity, onClose }: { activity: Activity; onClos
               </View>
               <Switch value={requiresCheckout} onValueChange={setRequiresCheckout} trackColor={{ true: colors.primary, false: '#d9d2ec' }} thumbColor={colors.white} />
             </View>
+
+            {requiresCheckout && (
+              <>
+                <Text style={styles.label}>Minsta tid på plats (minuter)</Text>
+                <TextField
+                  placeholder="0 (t.ex. 45)"
+                  value={minStayMin}
+                  onChangeText={setMinStayMin}
+                  keyboardType="number-pad"
+                  style={styles.input}
+                />
+                <Text style={styles.switchHint}>Utcheckningsknappen låses upp först då.</Text>
+              </>
+            )}
 
             <Text style={styles.label}>Tema</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.themes}>

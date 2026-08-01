@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Alert } from '@/lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert } from '@/lib/alert';
 import { Icon } from '@/components/Icon';
 import { Stjarnkort } from '@/features/larare/Stjarnkort';
 import { useChildCheckins, useRemoveChild } from '@/hooks/useParent';

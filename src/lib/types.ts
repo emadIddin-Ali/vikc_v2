@@ -169,6 +169,8 @@ export type OpenSession = {
   lat: number | null;
   lng: number | null;
   started_at: string;
+  /** When check-out opens (started_at + the activity's min_stay_min). */
+  can_checkout_at: string;
 };
 
 /** Activity fields needed by the scan screen. */
@@ -202,6 +204,8 @@ export type Activity = {
   radius_m: number | null;
   /** Points are awarded on check-OUT, not on check-in. */
   requires_checkout: boolean;
+  /** Minutes the youth must stay before check-out is allowed. 0 = no wait. */
+  min_stay_min: number;
 };
 
 /** Open activity a youth can still check into right now (from youth_open_activities). */

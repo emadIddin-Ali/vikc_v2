@@ -1,3 +1,4 @@
+import { Alert } from '@/lib/alert';
 import { CheckoutBanner } from '@/components/CheckoutBanner';
 import { Confetti } from '@/components/Confetti';
 import { Floaty } from '@/components/Floaty';
@@ -23,7 +24,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View,
 } from 'react-native';
-import { Alert } from '@/lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type GeoState = 'searching' | 'inrange' | 'far';

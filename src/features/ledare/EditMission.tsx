@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Alert } from '@/lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert } from '@/lib/alert';
 import { TextField } from '@/components/ui/TextField';
 import { useDeleteMission, useUpdateMission } from '@/hooks/useLedare';
 import type { Mission, MissionKind } from '@/lib/types';

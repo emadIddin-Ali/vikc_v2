@@ -65,6 +65,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
   const [mode, setMode] = useState<'qr' | 'open'>('qr');
   const [requiresPhoto, setRequiresPhoto] = useState(false);
   const [requiresCheckout, setRequiresCheckout] = useState(false);
+  const [minStayMin, setMinStayMin] = useState('');
   const [theme, setTheme] = useState('fika');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -144,6 +145,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
         dailyLimit: parseInt(dailyLimit) || 1,
         radiusM: activityRadius ? parseInt(activityRadius) : null,
         requiresCheckout,
+        minStayMin: requiresCheckout && minStayMin ? parseInt(minStayMin) || 0 : 0,
       },
       {
         onSuccess: () => {
@@ -154,6 +156,7 @@ export function Aktiviteter({ fid }: { fid: string }) {
           setMode('qr');
           setRequiresPhoto(false);
           setRequiresCheckout(false);
+          setMinStayMin('');
           setTheme('fika');
           setCoords(null);
           setDurationMin('');
@@ -203,7 +206,9 @@ export function Aktiviteter({ fid }: { fid: string }) {
             <View style={styles.badges}>
               <Badge text={a.checkin_mode === 'open' ? 'Öppen' : 'QR'} ink={t.ink} />
               {a.requires_photo && <Badge text="Foto" ink={t.ink} />}
-              {a.requires_checkout && <Badge text="Utcheckning" ink={t.ink} />}
+              {a.requires_checkout && (
+                <Badge text={a.min_stay_min > 0 ? `Utcheckning · ${a.min_stay_min} min` : 'Utcheckning'} ink={t.ink} />
+              )}
             </View>
           </View>
         </Pressable>
@@ -325,6 +330,23 @@ export function Aktiviteter({ fid }: { fid: string }) {
           </View>
           <Switch value={requiresCheckout} onValueChange={setRequiresCheckout} trackColor={{ true: colors.primary, false: '#d9d2ec' }} thumbColor={colors.white} />
         </View>
+
+        {requiresCheckout && (
+          <>
+            <Text style={styles.label}>Minsta tid på plats</Text>
+            <TextField
+              placeholder="0 (t.ex. 45 minuter)"
+              value={minStayMin}
+              onChangeText={setMinStayMin}
+              keyboardType="number-pad"
+              style={{ marginTop: 8 }}
+            />
+            <Text style={styles.switchHint}>
+              Utcheckningsknappen är låst så länge — då räcker det inte att titta in i dörren. Lämna
+              tomt för att låta dem checka ut direkt.
+            </Text>
+          </>
+        )}
 
         <View style={styles.labelRow}>
           <Text style={styles.label}>Incheckningsplats (valfri)</Text>

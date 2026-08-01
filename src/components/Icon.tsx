@@ -10,7 +10,7 @@ export type IconName =
   | 'camera' | 'pin' | 'check' | 'calendar' | 'trophy' | 'map' | 'locate'
   | 'arrowL' | 'chev' | 'palette' | 'heart' | 'book' | 'soccer' | 'moon'
   | 'diamond' | 'shirt' | 'ticket' | 'film' | 'gamepad' | 'sparkles'
-  | 'coffee' | 'wrench' | 'shield' | 'org' | 'star' | 'starO';
+  | 'coffee' | 'wrench' | 'shield' | 'org' | 'star' | 'starO' | 'clock';
 
 type Props = {
   name: IconName;
@@ -108,6 +108,13 @@ export function Icon({ name, size = 22, color = '#2c2340', opacity = 1 }: Props)
       return (
         <Svg {...svg}>
           <Path {...stroke} d="M5 12.5l4.5 4.5L19 7" />
+        </Svg>
+      );
+    case 'clock':
+      return (
+        <Svg {...svg}>
+          <Circle {...stroke} cx={12} cy={12} r={9} />
+          <Path {...stroke} d="M12 7v5l3.5 2" />
         </Svg>
       );
     case 'calendar':
