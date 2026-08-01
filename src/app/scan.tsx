@@ -21,8 +21,9 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View,
+  ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View,
 } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type GeoState = 'searching' | 'inrange' | 'far';

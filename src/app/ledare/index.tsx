@@ -121,7 +121,11 @@ const styles = StyleSheet.create({
   kommunBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.ink, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12 },
   kommunBtnText: { fontFamily: font.semibold, fontSize: 12.5, color: colors.white },
 
-  tabsScroll: { flexGrow: 0, marginTop: 8 },
+  // flexShrink: 0 är inte överflödig. React Native ger varje ScrollView
+  // flexShrink: 0, men react-native-web sätter 1 — och då krymps flikraden av
+  // innehållet under den. På en lång flik (Aktiviteter, Klasser) blev raden en
+  // några pixlar hög strimma där bara toppen av knapparna syntes.
+  tabsScroll: { flexGrow: 0, flexShrink: 0, marginTop: 8 },
   tabs: { gap: 7, paddingHorizontal: 18, paddingVertical: 4 },
   pill: { paddingVertical: 9, paddingHorizontal: 15, borderRadius: 999 },
   pillText: { fontFamily: font.semibold, fontSize: 12.5 },

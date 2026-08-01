@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Card } from '@/components/Card';
 import { DateTimeField } from '@/components/DateTimeField';
 import { Icon, IconName } from '@/components/Icon';

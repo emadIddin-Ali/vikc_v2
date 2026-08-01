@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, Switch, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { BadgeCell } from '@/components/Badge';
 import { Card } from '@/components/Card';
 import { Icon, IconName } from '@/components/Icon';

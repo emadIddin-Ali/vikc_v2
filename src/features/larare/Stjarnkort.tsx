@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Card } from '@/components/Card';
 import { StarCount, StarRow } from '@/features/larare/Stars';
 import { useElevKlasser, useElevStjarnor, useNekaKlassplacering } from '@/hooks/useLarare';

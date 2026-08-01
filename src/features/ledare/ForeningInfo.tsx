@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { Card } from '@/components/Card';
 import { Icon } from '@/components/Icon';
 import { TextField } from '@/components/ui/TextField';

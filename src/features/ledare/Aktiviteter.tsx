@@ -1,7 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import React, { useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert } from '@/lib/alert';
 import { ActivityQR } from '@/components/ActivityQR';
 import { Card } from '@/components/Card';
 import { DateTimeField } from '@/components/DateTimeField';
