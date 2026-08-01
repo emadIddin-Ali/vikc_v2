@@ -69,7 +69,8 @@ Skapa ett projekt på [supabase.com](https://supabase.com). Kör sedan SQL:en i 
 31. `supabase/migrations/0031_xp_ekonomi.sql` — **poängekonomin**. `xp_ledger` blir huvudbok för XP (fylls av triggers på `checkin` och `stjarna`, så inga incheckningsfunktioner behöver skrivas om). **Topplistan rankar på säsongens XP** i stället för på poängsaldot — att handla i butiken kostade tidigare placering. En säsong löper mellan två marknader. **Sviten räknas i veckor** (`week_streak`) och tål ett hopp; en daglig svit gick aldrig att hålla i en förening som är öppen några kvällar i veckan. Nytt **veckomål** per förening (`week_goal`) som ger XP + poäng, **märken ger XP** (`badge.xp` + `badge_unlock` + `sync_badge_xp()`), och uppdrag ger bara XP — inte butikspoäng. Kör efter 0030.
 32. `supabase/migrations/0032_hardening_v2.sql` — **säkerhetsgranskning av 0027–0031**: muterande privata hjälpare (`apply_xp`/`bump_streak`/`log_xp`) är inte längre körbara för approllen, inga negativa belopp i ekonomin (en ledare kunde trycka poäng via `cost = -100`), **byt föreningskod** (`rotate_join_code`) när en kod spridits vidare, och ledaren ser vem som äger varje klass så en lärarlös klass går att rädda. Kör efter 0031.
 33. `supabase/migrations/0033_utcheckningstid.sql` — **minsta tid på plats innan utcheckning** (`activity.min_stay_min`). "Kräv utcheckning" krävde att man checkade ut, inte att man stannade — nu kan ledaren sätta t.ex. 45 minuter, och `check_out` vägrar innan dess. Kör efter 0032.
-34. `supabase/seed.sql` — demodata (1 kommun, 3 föreningar, aktiviteter/belöningar/uppdrag). **Endast för test — kör ALDRIG i produktion.**
+34. `supabase/migrations/0034_ledare_avdrag.sql` — **ledaren kan ta bort poäng** (`remove_points`). Blev det fel fanns ingen väg tillbaka annat än SQL-editorn. XP och märken rörs inte — poäng är valuta, XP är vad man har gjort. `points_ledger.created_by` spårar vem som justerade, och `ledare_youth` visar saldot. Kör efter 0033.
+35. `supabase/seed.sql` — demodata (1 kommun, 3 föreningar, aktiviteter/belöningar/uppdrag). **Endast för test — kör ALDRIG i produktion.**
 
 > Med Supabase CLI: `supabase db push` kör migrationerna; seed körs av `supabase db reset`
 > lokalt, eller klistra in `seed.sql` i SQL Editor mot ett fjärrprojekt.
@@ -168,7 +169,9 @@ docs/ARKITEKTUR.md         # roller, ekonomins regler, säkerhetsmodell
 - ✅ Uppdrag (lös in XP, auto-progress vid incheckning) + Butik (växla poäng) + Notiser (inkorg)
 - ✅ Topplista per förening (server-rankad på säsongens XP)
 - ✅ Ledarverktyg — översikt m. aktiv-lista, agenda/tid + incheckningsfönster, öppna/kontinuerliga aktiviteter (daily-limit), fotobevis, Visa QR, uppdragshantering, närvaro per aktivitet, belöningar, sätt föreningens plats, **redigera & ta bort** aktiviteter/uppdrag
-- ✅ Push-pipeline byggd (expo-notifications + pg_net → Expo push) — **aktiveras med en development build** (Expo Go stödjer ej push)
+- ✅ Push-pipeline byggd (expo-notifications + pg_net → Expo push): Android-kanal, tryck-på-notis öppnar inkorgen, token rensas vid utloggning — **aktiveras med `npx eas init` + en development build** (Expo Go stödjer ej push). Se *Push-notiser* nedan
+- ✅ Ledaren kan **ta bort poäng** från en ungdom, med anledning och notis till den det gäller. XP och märken rörs inte (`0034_ledare_avdrag.sql`)
+- ✅ Manuell närvaro visar bara **aktiviteter som pågår just nu** — samma tidsfönster som ungdomens incheckning, med "Visa alla" för efterregistrering
 - ✅ Kommunöversikt (superadmin) — aggregerad statistik, öppna förening som ledare, skapa förening
 - ✅ Profil — statistik, **Min närvaro** (alla egna incheckningar) och **Märken**: 27 märken i sex kategorier med progress mot varje mål, hemliga märken och egen märkesvy. Upplåsning beräknas ur medlemsdata, ingen unlock-tabell
 - ✅ Polish — animationer (konfetti, floaty maskot, ping, XP-bar, toast-slide) + haptik, respekterar *reduce motion*
@@ -269,6 +272,26 @@ Höj `version` i `app.json` inför varje release. EAS räknar upp build-numren s
 
 > Push-notiser fungerar först i ett riktigt bygge — Expo Go stödjer dem inte. Det är alltså normalt
 > att de är tysta under utvecklingen och vaknar först i steg 2.
+
+### Push-notiser — vad som krävs för att de ska ringa
+
+Serverdelen är klar: varje rad i `notification` skickar en push via `pg_net` → Expo (`0012`).
+Klienten registrerar token, skapar Androids `default`-kanal (samma som triggern skickar på) och
+öppnar inkorgen när man trycker på notisen. Tre saker återstår, och de kan bara du göra:
+
+```bash
+npx eas init                                   # skapar projectId → skrivs in i app.json
+npx eas build --profile development --platform android   # eller ios
+```
+
+1. **`projectId` i `app.json`.** Utan den hoppar `registerPushToken` över hela flödet (och säger
+   varför i konsolen under utveckling). `npx eas init` skriver in den under `extra.eas.projectId`.
+2. **Ett riktigt bygge.** Expo Go tar inte emot fjärrpush sedan SDK 53 — det spelar ingen roll hur
+   rätt allt annat är.
+3. **En fysisk enhet.** Simulatorer får inga push-tokens.
+
+Webben är undantagen med flit: webbpush är en annan teknik (VAPID + Service Worker) som inte går
+genom Expos push-tjänst. Notiserna finns kvar i inkorgen i appen.
 
 ## Lansering — GDPR & säkerhet
 

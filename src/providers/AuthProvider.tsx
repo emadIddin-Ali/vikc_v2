@@ -3,7 +3,8 @@ import type { Session } from '@supabase/supabase-js';
 import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
-import { registerPushToken, unregisterPushToken } from '@/lib/push';
+import { router } from 'expo-router';
+import { onNotificationTap, registerPushToken, unregisterPushToken } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 import type {
   Forening, MembershipWithForening, Profile, ViewRole,
@@ -203,6 +204,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isKommunAdmin) return 'kommun';
     return null;
   }, [actAsForening, activeMembership, isKommunAdmin]);
+
+  // Ett tryck på en notis ska leda till inkorgen, inte till den skärm appen
+  // råkade stå på. Bara ungdomsvyn har en inkorg — för övriga roller räcker
+  // det att appen öppnas.
+  useEffect(() => {
+    if (role !== 'ungdom') return;
+    return onNotificationTap(() => router.push('/ungdom/notiser'));
+  }, [role]);
 
   const openForeningAsLeader = useCallback((f: Forening) => setActAsForening(f), []);
   const exitForeningAsLeader = useCallback(() => setActAsForening(null), []);

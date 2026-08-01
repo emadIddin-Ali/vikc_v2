@@ -101,7 +101,9 @@ export function useLedareYouth(foreningId: string | null, activityId: string | n
     queryFn: async () => {
       const { data, error } = await supabase.rpc('ledare_youth', { p_forening: foreningId, p_activity: activityId });
       if (error) throw new Error(error.message);
-      return (data as LedareYouth[]) ?? [];
+      // points kom till i 0034. Är migrationen inte körd än saknas fältet, och
+      // ett "undefined p" i listan är sämre än en nolla.
+      return ((data as LedareYouth[]) ?? []).map((y) => ({ ...y, points: y.points ?? 0 }));
     },
   });
 }
@@ -151,6 +153,39 @@ export function useMarkPresent() {
       qc.invalidateQueries({ queryKey: ['ledare-youth'] });
       qc.invalidateQueries({ queryKey: ['ledare-overview'] });
       qc.invalidateQueries({ queryKey: ['ledare-checkins-today'] });
+    },
+    onError: (e) => toast(e.message),
+  });
+}
+
+/**
+ * Ledaren drar av poäng från en ungdom (0034).
+ *
+ * Bara avdrag, aldrig påslag: poäng tjänas genom att komma, och en knapp som
+ * delar ut dem godtyckligt hade gjort närvaron meningslös. XP rörs inte —
+ * topplistan mäter vad man har gjort, och det tar ingen ifrån en.
+ */
+export function useRemovePoints() {
+  const qc = useQueryClient();
+  return useMutation<
+    { removed: number; balance: number; name: string },
+    Error,
+    { forening: string; user: string; amount: number; reason: string | null }
+  >({
+    mutationFn: async ({ forening, user, amount, reason }) => {
+      const { data, error } = await supabase.rpc('remove_points', {
+        p_forening: forening,
+        p_user: user,
+        p_amount: amount,
+        p_reason: reason,
+      });
+      if (error) throw new Error(error.message);
+      return data as { removed: number; balance: number; name: string };
+    },
+    onSuccess: (data) => {
+      toast(`−${data.removed}p · ${data.name.split(' ')[0]} har ${data.balance}p kvar`);
+      qc.invalidateQueries({ queryKey: ['ledare-youth'] });
+      qc.invalidateQueries({ queryKey: ['ledare-overview'] });
     },
     onError: (e) => toast(e.message),
   });

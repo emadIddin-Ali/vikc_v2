@@ -234,6 +234,8 @@ export type LedareYouth = {
   avatar_color: string;
   visits: number;
   present_today: boolean;
+  /** Spendable balance — what the leader can deduct from (0034). */
+  points: number;
 };
 
 export type LedareCheckin = {
